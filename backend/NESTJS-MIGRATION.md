@@ -108,22 +108,106 @@ backend/src/
 
 ---
 
-## 🔄 Fase 2: Contracts e DTOs (PRÓXIMO)
+## ✅ Fase 2: Contracts ts-rest (COMPLETO)
+
+### Estrutura Criada:
+
+#### Entity Contracts (10 contracts - 1 por tabela)
+```
+src/contracts/
+├── manga.contract.ts           ✅ CRUD + restore + filters
+├── manga-name.contract.ts      ✅ Alternative names management
+├── tag.contract.ts             ✅ CRUD + by type + conflicts
+├── manga-tag.contract.ts       ✅ Add/remove tags + bulk operations
+├── creator.contract.ts         ✅ CRUD + search
+├── manga-creator.contract.ts   ✅ Add/remove creators + role update
+├── reminder.contract.ts        ✅ CRUD + pending + mark as sent
+├── reading-session.contract.ts ✅ CRUD + stats + by manga
+├── collection.contract.ts      ✅ CRUD + public collections
+├── collection-manga.contract.ts✅ Add/remove + reorder + position
+└── index.ts                    ✅ Export all contracts
+```
+
+#### Custom Contracts (3 contracts - features especiais)
+```
+src/contracts/custom/
+├── ai.contract.ts       ✅ Chat, semantic search, embeddings, recommendations
+├── stats.contract.ts    ✅ Dashboard, reading stats, top tags/creators
+├── health.contract.ts   ✅ Health checks, readiness, liveness probes
+└── index.ts (included in main)
+```
+
+### Schemas Zod Criados (total: 70+):
+
+**Manga Contract:**
+- MangaSchema, CreateMangaSchema, UpdateMangaSchema
+- MangaFiltersSchema, MangaListResponseSchema
+
+**Tag Contract:**
+- TagSchema, CreateTagSchema, UpdateTagSchema
+- TagFiltersSchema, TagListResponseSchema
+
+**MangaTag Contract:**
+- MangaTagSchema, AddTagToMangaSchema, AddMultipleTagsSchema
+
+**Creator Contract:**
+- CreatorSchema, CreateCreatorSchema, UpdateCreatorSchema
+- CreatorFiltersSchema, CreatorListResponseSchema
+
+**MangaCreator Contract:**
+- MangaCreatorSchema, AddCreatorToMangaSchema
+- UpdateMangaCreatorRoleSchema, AddMultipleCreatorsSchema
+
+**Reminder Contract:**
+- ReminderSchema, CreateReminderSchema, UpdateReminderSchema
+- ReminderFiltersSchema, ReminderListResponseSchema
+
+**ReadingSession Contract:**
+- ReadingSessionSchema, CreateReadingSessionSchema
+- ReadingSessionFiltersSchema, ReadingStatsSchema
+
+**Collection Contract:**
+- CollectionSchema, CreateCollectionSchema
+- CollectionWithMangasSchema, CollectionListResponseSchema
+
+**CollectionManga Contract:**
+- CollectionMangaSchema, AddMangaToCollectionSchema
+- ReorderMangasSchema, UpdateMangaPositionSchema
+
+**AI Contract:**
+- ChatMessageSchema, ChatRequestSchema, ChatResponseSchema
+- SemanticSearchSchema, GenerateEmbeddingSchema
+- RecommendationSchema, EmbeddingResponseSchema
+
+**Stats Contract:**
+- DashboardStatsSchema, MangaStatsSchema, ReadingStatsSchema
+- MonthlyReadingSchema, TagStatsSchema, CreatorStatsSchema
+
+**Health Contract:**
+- HealthStatusSchema, DatabaseHealthSchema, DetailedHealthSchema
+
+### Features dos Contracts:
+
+✅ **Type-safety completo** - Tipos compartilhados frontend/backend
+✅ **Validação com Zod** - Validação automática de requests/responses
+✅ **Documentação automática** - Integração com Swagger
+✅ **Error handling** - Status codes claros (400, 404, 409, 500)
+✅ **Paginação** - limit/offset em listagens
+✅ **Filtros avançados** - Query params tipados
+✅ **Bulk operations** - Add múltiplos tags/creators
+✅ **Soft delete support** - Restore endpoint para Manga
+✅ **UUID validation** - Validação de IDs
+✅ **Date/DateTime** - Formato ISO 8601
+✅ **Regex validation** - Cores hex, language codes
+✅ **Business rules** - Conflict detection (409)
+
+---
+
+## 🔄 Fase 3: DTOs e Validation (PRÓXIMO)
 
 ### A Criar:
 
-#### ts-rest Contracts
-```
-src/contracts/
-├── manga.contract.ts
-├── tag.contract.ts
-├── ai.contract.ts
-├── stats.contract.ts
-├── collection.contract.ts
-└── index.ts
-```
-
-#### DTOs
+#### class-validator DTOs (um a um dos schemas Zod)
 ```
 src/modules/manga/dto/
 ├── create-manga.dto.ts
@@ -132,7 +216,15 @@ src/modules/manga/dto/
 └── manga-response.dto.ts
 ```
 
+*Nota: Como estamos usando ts-rest, os DTOs podem ser gerados automaticamente dos schemas Zod, mas vamos criar DTOs NestJS para melhor integração com Swagger decorators.*
+
 ---
+
+## 🔄 Fase 4: Modules (DEPOIS DOS DTOS)
+
+### Estrutura de cada módulo:
+
+
 
 ## 🔄 Fase 3: Modules (PRÓXIMO)
 
