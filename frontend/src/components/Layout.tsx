@@ -1,5 +1,6 @@
-import { Box, HStack, Button, Heading } from '@chakra-ui/react';
+import { Box, HStack, Button, Heading, IconButton } from '@chakra-ui/react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
+import { FaGithub } from 'react-icons/fa';
 
 export function Layout() {
   const location = useLocation();
@@ -39,6 +40,18 @@ export function Layout() {
               >
                 Chat AI
               </Button>
+              <IconButton
+                as="a"
+                href="https://github.com/HiranHabiff/agente-mangas"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="GitHub Repository"
+                variant="ghost"
+                fontSize="xl"
+                _hover={{ bg: 'gray.700' }}
+              >
+                <Box as={FaGithub} color="white" />
+              </IconButton>
             </HStack>
           </HStack>
         </Box>
