@@ -7,7 +7,11 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "docker:install": "docker exec manga-frontend npm install",
+    "docker:add": "docker exec manga-frontend npm install",
+    "docker:remove": "docker exec manga-frontend npm uninstall",
+    "docker:update": "docker exec manga-frontend npm update"
   },
   "dependencies": {
     "@chakra-ui/react": "^3.30.0",
@@ -22,6 +26,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
+    "@react-grab/cli": "^0.0.72",
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",
@@ -31,6 +36,7 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
     "globals": "^16.5.0",
+    "react-grab": "^0.0.72",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.46.4",
     "vite": "^7.2.4"

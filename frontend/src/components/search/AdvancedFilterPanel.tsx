@@ -208,7 +208,9 @@ export function AdvancedFilterPanel({ onFilterChange }: AdvancedFilterPanelProps
                       _hover={{ transform: 'scale(1.05)' }}
                       transition="all 0.2s"
                     >
-                      <Tag.Label>{status.label}</Tag.Label>
+                      <Tag.Label color="white">
+                        {status.label}
+                      </Tag.Label>
                     </Tag.Root>
                   ))}
                 </Flex>
@@ -232,7 +234,9 @@ export function AdvancedFilterPanel({ onFilterChange }: AdvancedFilterPanelProps
                         _hover={{ transform: 'scale(1.05)' }}
                         transition="all 0.2s"
                       >
-                        <Tag.Label fontSize="xs">{tag}</Tag.Label>
+                        <Tag.Label fontSize="xs" color="white">
+                          {tag}
+                        </Tag.Label>
                         {selectedTags.includes(tag) && (
                           <Tag.CloseTrigger onClick={(e) => {
                             e.stopPropagation();
