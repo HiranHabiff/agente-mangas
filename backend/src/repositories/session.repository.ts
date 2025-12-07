@@ -1,6 +1,6 @@
-import { query } from '../config/database.js';
-import type { ReadingSession } from '../models/manga.model.js';
-import { logger } from '../utils/logger.js';
+import { query } from '../config/database';
+import type { ReadingSession } from '../models/manga.model';
+import { logger } from '../utils/logger';
 
 // ============================================
 // READING SESSION REPOSITORY

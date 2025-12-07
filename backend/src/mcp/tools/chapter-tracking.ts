@@ -1,6 +1,6 @@
-import { mangaService } from '../../services/manga.service.js';
-import type { TrackChapterInput } from '../../models/manga.model.js';
-import { logger } from '../../utils/logger.js';
+import { mangaService } from '../../services/manga.service';
+import type { TrackChapterInput } from '../../models/manga.model';
+import { logger } from '../../utils/logger';
 
 // ============================================
 // CHAPTER TRACKING TOOLS

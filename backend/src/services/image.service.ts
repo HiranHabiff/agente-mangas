@@ -2,9 +2,9 @@ import { createWriteStream, existsSync, mkdirSync } from 'fs';
 import { pipeline } from 'stream/promises';
 import { Readable } from 'stream';
 import { resolve, extname } from 'path';
-import { mangaRepository } from '../repositories/manga.repository.js';
-import { config } from '../config/env.js';
-import { logger } from '../utils/logger.js';
+import { mangaRepository } from '../repositories/manga.repository';
+import { config } from '../config/env';
+import { logger } from '../utils/logger';
 
 // ============================================
 // IMAGE SERVICE

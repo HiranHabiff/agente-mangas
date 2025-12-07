@@ -1,5 +1,5 @@
-import { query } from '../config/database.js';
-import { logger } from '../utils/logger.js';
+import { query } from '../config/database';
+import { logger } from '../utils/logger';
 
 // ============================================
 // SQL QUERY TOOL - Dynamic Database Queries

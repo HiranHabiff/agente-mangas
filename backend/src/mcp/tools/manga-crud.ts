@@ -1,10 +1,10 @@
-import { mangaService } from '../../services/manga.service.js';
+import { mangaService } from '../../services/manga.service';
 import type {
   CreateMangaInput,
   UpdateMangaInput,
   SearchMangaInput,
-} from '../../models/manga.model.js';
-import { logger } from '../../utils/logger.js';
+} from '../../models/manga.model';
+import { logger } from '../../utils/logger';
 
 // ============================================
 // MANGA CRUD TOOLS

@@ -1,6 +1,6 @@
-import { reminderService } from '../../services/reminder.service.js';
-import type { CreateReminderInput } from '../../models/manga.model.js';
-import { logger } from '../../utils/logger.js';
+import { reminderService } from '../../services/reminder.service';
+import type { CreateReminderInput } from '../../models/manga.model';
+import { logger } from '../../utils/logger';
 
 // ============================================
 // REMINDER TOOLS

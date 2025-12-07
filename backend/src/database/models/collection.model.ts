@@ -22,39 +22,39 @@ export class Collection extends Model<Collection> {
   @PrimaryKey
   @Default(DataType.UUIDV4)
   @Column(DataType.UUID)
-  id: string;
+  declare id: string;
 
   @Index
   @Column({
     type: DataType.STRING(255),
     allowNull: false,
   })
-  name: string;
+  declare name: string;
 
   @Column({
     type: DataType.TEXT,
     allowNull: true,
   })
-  description: string;
+  declare description: string;
 
   @Column({
     type: DataType.BOOLEAN,
     defaultValue: false,
   })
-  is_public: boolean;
+  declare is_public: boolean;
 
   @Column({
     type: DataType.STRING(7),
     allowNull: true,
   })
-  color: string;
+  declare color: string;
 
   @CreatedAt
-  created_at: Date;
+  declare created_at: Date;
 
   @UpdatedAt
-  updated_at: Date;
+  declare updated_at: Date;
 
   @BelongsToMany(() => Manga, () => CollectionManga)
-  mangas: Manga[];
+  declare mangas: Manga[];
 }

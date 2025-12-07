@@ -1,5 +1,5 @@
-import { tagRepository } from '../../repositories/tag.repository.js';
-import { logger } from '../../utils/logger.js';
+import { tagRepository } from '../../repositories/tag.repository';
+import { logger } from '../../utils/logger';
 
 // ============================================
 // TAG TOOLS

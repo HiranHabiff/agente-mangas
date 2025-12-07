@@ -1,5 +1,5 @@
-import { imageService } from '../../services/image.service.js';
-import { logger } from '../../utils/logger.js';
+import { imageService } from '../../services/image.service';
+import { logger } from '../../utils/logger';
 
 // ============================================
 // IMAGE TOOLS

@@ -2,8 +2,8 @@ import { z } from 'zod';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { logger } from '../../utils/logger.js';
-import { config } from '../../config/env.js';
+import { logger } from '../../utils/logger';
+import { config } from '../../config/env';
 
 const genAI = new GoogleGenerativeAI(config.gemini.apiKey);
 

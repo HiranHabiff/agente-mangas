@@ -1,6 +1,6 @@
-import { query } from '../config/database.js';
-import type { Reminder, CreateReminderInput } from '../models/manga.model.js';
-import { logger } from '../utils/logger.js';
+import { query } from '../config/database';
+import type { Reminder, CreateReminderInput } from '../models/manga.model';
+import { logger } from '../utils/logger';
 
 // ============================================
 // REMINDER REPOSITORY

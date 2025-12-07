@@ -110,6 +110,7 @@ export const aiContract = c.router({
     pathParams: z.object({
       mangaId: z.string().uuid(),
     }),
+    body: z.object({}), // Empty body for POST endpoint
     responses: {
       200: z.object({
         manga_id: z.string().uuid(),

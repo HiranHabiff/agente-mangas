@@ -1,6 +1,6 @@
-import { aiService } from '../../services/ai.service.js';
-import { mangaService } from '../../services/manga.service.js';
-import { logger } from '../../utils/logger.js';
+import { aiService } from '../../services/ai.service';
+import { mangaService } from '../../services/manga.service';
+import { logger } from '../../utils/logger';
 
 // ============================================
 // AI-POWERED TOOLS

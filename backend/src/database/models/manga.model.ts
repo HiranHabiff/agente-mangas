@@ -39,98 +39,98 @@ export class Manga extends Model<Manga> {
   @PrimaryKey
   @Default(DataType.UUIDV4)
   @Column(DataType.UUID)
-  id: string;
+  declare id: string;
 
   @Index
   @Column({
     type: DataType.STRING(750),
     allowNull: false,
   })
-  primary_title: string;
+  declare primary_title: string;
 
   @Index
   @Column({
     type: DataType.ENUM('reading', 'completed', 'plan_to_read', 'on_hold', 'dropped'),
     defaultValue: 'plan_to_read',
   })
-  status: MangaStatus;
+  declare status: MangaStatus;
 
   @Column({
     type: DataType.INTEGER,
     defaultValue: 0,
   })
-  last_chapter_read: number;
+  declare last_chapter_read: number;
 
   @Column({
     type: DataType.DECIMAL(3, 1),
     allowNull: true,
   })
-  rating: number;
+  declare rating: number;
 
   @Column({
     type: DataType.TEXT,
     allowNull: true,
   })
-  synopsis: string;
+  declare synopsis: string;
 
   @Column({
     type: DataType.STRING(500),
     allowNull: true,
   })
-  image_filename: string;
+  declare image_filename: string;
 
   @Column({
     type: DataType.STRING(1000),
     allowNull: true,
   })
-  image_url: string;
+  declare image_url: string;
 
   @Column({
     type: DataType.STRING(1000),
     allowNull: true,
   })
-  source_url: string;
+  declare source_url: string;
 
   @Column({
     type: 'vector(768)',
     allowNull: true,
   })
-  embedding: number[];
+  declare embedding: number[];
 
   @Column({
     type: DataType.INTEGER,
     allowNull: true,
     unique: true,
   })
-  legacy_id: number;
+  declare legacy_id: number;
 
   @Index
   @CreatedAt
-  created_at: Date;
+  declare created_at: Date;
 
   @Index
   @UpdatedAt
-  updated_at: Date;
+  declare updated_at: Date;
 
   @DeletedAt
-  deleted_at: Date;
+  declare deleted_at: Date;
 
   // Relationships
   @HasMany(() => MangaName)
-  alternative_names: MangaName[];
+  declare alternative_names: MangaName[];
 
   @BelongsToMany(() => Tag, () => MangaTag)
-  tags: Tag[];
+  declare tags: Tag[];
 
   @BelongsToMany(() => Creator, () => MangaCreator)
-  creators: Creator[];
+  declare creators: Creator[];
 
   @HasMany(() => Reminder)
-  reminders: Reminder[];
+  declare reminders: Reminder[];
 
   @HasMany(() => ReadingSession)
-  reading_sessions: ReadingSession[];
+  declare reading_sessions: ReadingSession[];
 
   @BelongsToMany(() => Collection, () => CollectionManga)
-  collections: Collection[];
+  declare collections: Collection[];
 }

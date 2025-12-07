@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { config } from './env.js';
-import { logger } from '../utils/logger.js';
+import { config } from './env';
+import { logger } from '../utils/logger';
 
 // Initialize Gemini AI
 export const genAI = new GoogleGenerativeAI(config.gemini.apiKey);

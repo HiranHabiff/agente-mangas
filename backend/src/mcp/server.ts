@@ -1,22 +1,22 @@
 #!/usr/bin/env node
 
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { Server } from '@modelcontextprotocol/sdk/server/index';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio';
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
-} from '@modelcontextprotocol/sdk/types.js';
-import { validateEnv, config } from '../config/env.js';
-import { testConnection } from '../config/database.js';
-import { logger } from '../utils/logger.js';
-import { toolSchemas } from './schemas/tool-schemas.js';
-import { mangaCrudTools } from './tools/manga-crud.js';
-import { chapterTrackingTools } from './tools/chapter-tracking.js';
-import { reminderTools } from './tools/reminders.js';
-import { imageTools } from './tools/images.js';
-import { aiAssistantTools } from './tools/ai-assistant.js';
-import { tagTools } from './tools/tags.js';
-import { mangaScraperTools } from './tools/manga-scraper.js';
+} from '@modelcontextprotocol/sdk/types';
+import { validateEnv, config } from '../config/env';
+import { testConnection } from '../config/database';
+import { logger } from '../utils/logger';
+import { toolSchemas } from './schemas/tool-schemas';
+import { mangaCrudTools } from './tools/manga-crud';
+import { chapterTrackingTools } from './tools/chapter-tracking';
+import { reminderTools } from './tools/reminders';
+import { imageTools } from './tools/images';
+import { aiAssistantTools } from './tools/ai-assistant';
+import { tagTools } from './tools/tags';
+import { mangaScraperTools } from './tools/manga-scraper';
 
 // ============================================
 // MANGA AGENT MCP SERVER

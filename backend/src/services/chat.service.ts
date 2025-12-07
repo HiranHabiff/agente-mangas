@@ -1,14 +1,14 @@
-import { getChatModel } from '../config/gemini.js';
-import { mangaCrudTools } from '../mcp/tools/manga-crud.js';
-import { chapterTrackingTools } from '../mcp/tools/chapter-tracking.js';
-import { reminderTools } from '../mcp/tools/reminders.js';
-import { imageTools } from '../mcp/tools/images.js';
-import { aiAssistantTools } from '../mcp/tools/ai-assistant.js';
-import { tagTools } from '../mcp/tools/tags.js';
-import { mangaScraperTools } from '../mcp/tools/manga-scraper.js';
-import { mangaService } from './manga.service.js';
-import { sqlQueryTool, DATABASE_SCHEMA } from '../tools/sql-query.tool.js';
-import { logger } from '../utils/logger.js';
+import { getChatModel } from '../config/gemini';
+import { mangaCrudTools } from '../mcp/tools/manga-crud';
+import { chapterTrackingTools } from '../mcp/tools/chapter-tracking';
+import { reminderTools } from '../mcp/tools/reminders';
+import { imageTools } from '../mcp/tools/images';
+import { aiAssistantTools } from '../mcp/tools/ai-assistant';
+import { tagTools } from '../mcp/tools/tags';
+import { mangaScraperTools } from '../mcp/tools/manga-scraper';
+import { mangaService } from './manga.service';
+import { sqlQueryTool, DATABASE_SCHEMA } from '../tools/sql-query.tool';
+import { logger } from '../utils/logger';
 
 // ============================================
 // CHAT SERVICE - AI-Powered Command Execution

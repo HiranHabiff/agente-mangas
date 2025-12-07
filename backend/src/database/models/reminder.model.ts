@@ -20,7 +20,7 @@ export class Reminder extends Model<Reminder> {
   @PrimaryKey
   @Default(DataType.UUIDV4)
   @Column(DataType.UUID)
-  id: string;
+  declare id: string;
 
   @ForeignKey(() => Manga)
   @Index
@@ -28,33 +28,33 @@ export class Reminder extends Model<Reminder> {
     type: DataType.UUID,
     allowNull: false,
   })
-  manga_id: string;
+  declare manga_id: string;
 
   @Column({
     type: DataType.STRING(255),
     allowNull: false,
   })
-  title: string;
+  declare title: string;
 
   @Column({
     type: DataType.TEXT,
     allowNull: true,
   })
-  message: string;
+  declare message: string;
 
   @Index
   @Column({
     type: DataType.DATE,
     allowNull: false,
   })
-  remind_at: Date;
+  declare remind_at: Date;
 
   @Column({
     type: DataType.BOOLEAN,
     defaultValue: false,
   })
-  is_sent: boolean;
+  declare is_sent: boolean;
 
   @BelongsTo(() => Manga)
-  manga: Manga;
+  declare manga: Manga;
 }

@@ -1,6 +1,6 @@
-import { mangaRepository } from '../repositories/manga.repository.js';
-import { sessionRepository } from '../repositories/session.repository.js';
-import { pool } from '../config/database.js';
+import { mangaRepository } from '../repositories/manga.repository';
+import { sessionRepository } from '../repositories/session.repository';
+import { pool } from '../config/database';
 import type {
   Manga,
   MangaComplete,
@@ -10,8 +10,8 @@ import type {
   TrackChapterInput,
   PaginatedResult,
   MangaRecommendation,
-} from '../models/manga.model.js';
-import { logger } from '../utils/logger.js';
+} from '../models/manga.model';
+import { logger } from '../utils/logger';
 
 // ============================================
 // MANGA SERVICE

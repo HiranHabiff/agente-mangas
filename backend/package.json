@@ -1,9 +1,8 @@
 {
   "name": "manga-agent-backend",
-  "version": "1.0.0",
-  "description": "Backend MCP server for Manga Management Agent with Gemini AI",
-  "main": "dist/index.js",
-  "type": "module",
+  "version": "2.0.0",
+  "description": "NestJS Backend for Manga Management with AI, MCP Server and REST API",
+  "main": "dist/main.js",
   "scripts": {
     "start": "node dist/main.js",
     "start:dev": "nest start --watch",
@@ -39,6 +38,8 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@anatine/zod-nestjs": "^2.0.12",
+    "@anatine/zod-openapi": "^2.2.8",
     "@google/generative-ai": "^0.21.0",
     "@modelcontextprotocol/sdk": "^1.0.4",
     "@nestjs/common": "^11.1.9",

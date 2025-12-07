@@ -23,7 +23,7 @@ export class Tag extends Model<Tag> {
   @PrimaryKey
   @Default(DataType.UUIDV4)
   @Column(DataType.UUID)
-  id: string;
+  declare id: string;
 
   @Unique
   @Index
@@ -31,26 +31,26 @@ export class Tag extends Model<Tag> {
     type: DataType.STRING(100),
     allowNull: false,
   })
-  name: string;
+  declare name: string;
 
   @Column({
     type: DataType.ENUM('genre', 'demographic', 'theme', 'format', 'custom'),
     defaultValue: 'custom',
   })
-  type: TagType;
+  declare type: TagType;
 
   @Column({
     type: DataType.STRING(500),
     allowNull: true,
   })
-  description: string;
+  declare description: string;
 
   @Column({
     type: DataType.STRING(7),
     allowNull: true,
   })
-  color: string;
+  declare color: string;
 
   @BelongsToMany(() => Manga, () => MangaTag)
-  mangas: Manga[];
+  declare mangas: Manga[];
 }

@@ -20,7 +20,7 @@ export class MangaName extends Model<MangaName> {
   @PrimaryKey
   @Default(DataType.UUIDV4)
   @Column(DataType.UUID)
-  id: string;
+  declare id: string;
 
   @ForeignKey(() => Manga)
   @Index
@@ -28,21 +28,21 @@ export class MangaName extends Model<MangaName> {
     type: DataType.UUID,
     allowNull: false,
   })
-  manga_id: string;
+  declare manga_id: string;
 
   @Index
   @Column({
     type: DataType.STRING(750),
     allowNull: false,
   })
-  name: string;
+  declare name: string;
 
   @Column({
     type: DataType.STRING(10),
     allowNull: true,
   })
-  language: string;
+  declare language: string;
 
   @BelongsTo(() => Manga)
-  manga: Manga;
+  declare manga: Manga;
 }

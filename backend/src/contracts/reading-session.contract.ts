@@ -45,7 +45,7 @@ export const ReadingSessionListResponseSchema = z.object({
   offset: z.number().int(),
 });
 
-export const ReadingStatsSchema = z.object({
+export const SessionStatsSchema = z.object({
   total_sessions: z.number().int(),
   total_chapters_read: z.number().int(),
   total_duration_minutes: z.number().int(),
@@ -148,7 +148,7 @@ export const readingSessionContract = c.router({
       to_date: z.string().datetime().optional(),
     }),
     responses: {
-      200: ReadingStatsSchema,
+      200: SessionStatsSchema,
     },
     summary: 'Get reading statistics',
   },

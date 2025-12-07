@@ -118,6 +118,7 @@ export const reminderContract = c.router({
     pathParams: z.object({
       id: z.string().uuid(),
     }),
+    body: z.object({}), // Empty body for POST endpoint
     responses: {
       200: ReminderSchema,
       404: z.object({ message: z.string() }),

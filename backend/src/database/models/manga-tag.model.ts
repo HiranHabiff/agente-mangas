@@ -23,7 +23,7 @@ export class MangaTag extends Model<MangaTag> {
     type: DataType.UUID,
     primaryKey: true,
   })
-  manga_id: string;
+  declare manga_id: string;
 
   @ForeignKey(() => Tag)
   @Index
@@ -31,8 +31,8 @@ export class MangaTag extends Model<MangaTag> {
     type: DataType.UUID,
     primaryKey: true,
   })
-  tag_id: string;
+  declare tag_id: string;
 
   @CreatedAt
-  created_at: Date;
+  declare created_at: Date;
 }

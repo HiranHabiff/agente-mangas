@@ -1,11 +1,7 @@
 import dotenv from 'dotenv';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { join } from 'path';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-// Load environment variables
+// Load environment variables from parent directory
 dotenv.config({ path: join(__dirname, '../../.env') });
 
 export const config = {
@@ -21,8 +17,8 @@ export const config = {
   // Gemini AI
   gemini: {
     apiKey: process.env.GEMINI_API_KEY || '',
-    model: 'gemini-2.5-flash',
-    embeddingModel: 'gemini-embedding-001',
+    model: 'gemini-2.0-flash-exp',
+    embeddingModel: 'text-embedding-004',
   },
 
   // Google Custom Search

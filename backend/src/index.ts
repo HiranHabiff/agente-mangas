@@ -1,7 +1,7 @@
-import { validateEnv } from './config/env.js';
-import { testConnection, closePool } from './config/database.js';
-import { testGeminiConnection } from './config/gemini.js';
-import { logger } from './utils/logger.js';
+import { validateEnv } from './config/env';
+import { testConnection, closePool } from './config/database';
+import { testGeminiConnection } from './config/gemini';
+import { logger } from './utils/logger';
 
 async function main() {
   try {

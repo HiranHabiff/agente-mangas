@@ -1,6 +1,6 @@
-import { query } from '../config/database.js';
-import type { Tag } from '../models/manga.model.js';
-import { logger } from '../utils/logger.js';
+import { query } from '../config/database';
+import type { Tag } from '../models/manga.model';
+import { logger } from '../utils/logger';
 
 // ============================================
 // TAG REPOSITORY

@@ -25,7 +25,7 @@ export class MangaCreator extends Model<MangaCreator> {
     type: DataType.UUID,
     primaryKey: true,
   })
-  manga_id: string;
+  declare manga_id: string;
 
   @ForeignKey(() => Creator)
   @Index
@@ -33,14 +33,14 @@ export class MangaCreator extends Model<MangaCreator> {
     type: DataType.UUID,
     primaryKey: true,
   })
-  creator_id: string;
+  declare creator_id: string;
 
   @Column({
     type: DataType.ENUM('author', 'artist', 'both'),
     defaultValue: 'author',
   })
-  role: CreatorRole;
+  declare role: CreatorRole;
 
   @CreatedAt
-  created_at: Date;
+  declare created_at: Date;
 }

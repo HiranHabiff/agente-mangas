@@ -21,7 +21,7 @@ export class Creator extends Model<Creator> {
   @PrimaryKey
   @Default(DataType.UUIDV4)
   @Column(DataType.UUID)
-  id: string;
+  declare id: string;
 
   @Unique
   @Index
@@ -29,20 +29,20 @@ export class Creator extends Model<Creator> {
     type: DataType.STRING(255),
     allowNull: false,
   })
-  name: string;
+  declare name: string;
 
   @Column({
     type: DataType.TEXT,
     allowNull: true,
   })
-  biography: string;
+  declare biography: string;
 
   @Column({
     type: DataType.STRING(500),
     allowNull: true,
   })
-  image_url: string;
+  declare image_url: string;
 
   @BelongsToMany(() => Manga, () => MangaCreator)
-  mangas: Manga[];
+  declare mangas: Manga[];
 }

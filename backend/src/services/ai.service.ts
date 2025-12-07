@@ -1,9 +1,9 @@
-import { getChatModel, generateEmbedding as geminiGenerateEmbedding } from '../config/gemini.js';
-import { mangaRepository } from '../repositories/manga.repository.js';
-import { sessionRepository } from '../repositories/session.repository.js';
-import { tagRepository } from '../repositories/tag.repository.js';
-import type { ReadingHabitAnalysis } from '../models/manga.model.js';
-import { logger } from '../utils/logger.js';
+import { getChatModel, generateEmbedding as geminiGenerateEmbedding } from '../config/gemini';
+import { mangaRepository } from '../repositories/manga.repository';
+import { sessionRepository } from '../repositories/session.repository';
+import { tagRepository } from '../repositories/tag.repository';
+import type { ReadingHabitAnalysis } from '../models/manga.model';
+import { logger } from '../utils/logger';
 
 // ============================================
 // AI SERVICE (Gemini Integration)

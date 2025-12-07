@@ -23,7 +23,7 @@ export class CollectionManga extends Model<CollectionManga> {
     type: DataType.UUID,
     primaryKey: true,
   })
-  collection_id: string;
+  declare collection_id: string;
 
   @ForeignKey(() => Manga)
   @Index
@@ -31,14 +31,14 @@ export class CollectionManga extends Model<CollectionManga> {
     type: DataType.UUID,
     primaryKey: true,
   })
-  manga_id: string;
+  declare manga_id: string;
 
   @Column({
     type: DataType.INTEGER,
     allowNull: true,
   })
-  position: number;
+  declare position: number;
 
   @CreatedAt
-  created_at: Date;
+  declare created_at: Date;
 }

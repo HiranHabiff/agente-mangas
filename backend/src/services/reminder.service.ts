@@ -1,7 +1,7 @@
-import { reminderRepository } from '../repositories/reminder.repository.js';
-import { mangaRepository } from '../repositories/manga.repository.js';
-import type { Reminder, CreateReminderInput } from '../models/manga.model.js';
-import { logger } from '../utils/logger.js';
+import { reminderRepository } from '../repositories/reminder.repository';
+import { mangaRepository } from '../repositories/manga.repository';
+import type { Reminder, CreateReminderInput } from '../models/manga.model';
+import { logger } from '../utils/logger';
 
 // ============================================
 // REMINDER SERVICE

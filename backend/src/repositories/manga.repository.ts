@@ -1,4 +1,4 @@
-import { query, getClient } from '../config/database.js';
+import { query, getClient } from '../config/database';
 import type {
   Manga,
   MangaComplete,
@@ -7,8 +7,8 @@ import type {
   UpdateMangaInput,
   SearchMangaInput,
   PaginatedResult,
-} from '../models/manga.model.js';
-import { logger } from '../utils/logger.js';
+} from '../models/manga.model';
+import { logger } from '../utils/logger';
 
 // ============================================
 // MANGA REPOSITORY
