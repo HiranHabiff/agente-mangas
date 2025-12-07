@@ -1,0 +1,92 @@
+# Dependencies
+node_modules/
+backend/node_modules/
+frontend/node_modules/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+backend/.env
+backend/.env.local
+frontend/.env
+frontend/.env.local
+docker/.env
+
+# Service accounts and credentials
+service-account.json
+*-service-account.json
+credentials.json
+*-credentials.json
+
+# API Keys (documentation)
+claude-desktop-config.json
+*-config.json
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+backend/logs/
+
+# Build outputs
+dist/
+build/
+backend/dist/
+frontend/dist/
+frontend/build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# TypeScript
+*.tsbuildinfo
+
+# Testing
+coverage/
+.nyc_output/
+
+# Storage (local files)
+storage/images/*
+!storage/images/.gitkeep
+storage/temp/*
+!storage/temp/.gitkeep
+
+# Database
+*.sqlite
+*.db
+
+# Docker
+docker/postgres/data/
+storage/postgres/db/*
+!storage/postgres/db/.gitkeep
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Misc
+.cache/
+.parcel-cache/
+.next/
+.nuxt/
+
+# Temporary migration files
+run-migration.js
+verify-migration.js
+temp-package.json
+
+# Deprecated folders
+tumbs/
+scripts/
+
+# Documentation backups
+*-backup.md
+*.md.bak

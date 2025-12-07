@@ -1,0 +1,39 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir \"f:\\wamp\\www\\_agenteMangas\")",
+      "Bash(powershell -Command \"Get-ChildItem -Path ''f:\\wamp\\www\\_agenteMangas'' -Force\")",
+      "Bash(powershell -Command:*)",
+      "Bash(docker-compose up:*)",
+      "Bash(npm install)",
+      "Bash(npm run migrate:legacy:*)",
+      "Bash(node -e:*)",
+      "Bash(npx tsx:*)",
+      "Bash(docker ps:*)",
+      "Bash(dir:*)",
+      "Bash(npm run build:*)",
+      "Bash(docker exec:*)",
+      "Bash(docker inspect:*)",
+      "Bash(Select-Object -Last 20)",
+      "Bash(docker run:*)",
+      "Bash(cmd /c \"docker run --rm -v docker_postgres_data:/data -v f:\\wamp\\www\\_agenteMangas\\storage\\postgres\\db:/backup alpine tar czf /backup/pgdata.tar.gz -C /data . && echo Backup criado\")",
+      "Bash(tar tzf:*)",
+      "Bash(docker-compose down:*)",
+      "Bash(docker-compose ps:*)",
+      "Bash(docker-compose exec:*)",
+      "Bash(docker-compose logs:*)",
+      "Bash(docker-compose restart:*)",
+      "Bash(curl:*)",
+      "Bash(du:*)",
+      "Bash(findstr:*)",
+      "Bash(git init:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(gh repo create:*)",
+      "Bash(git push:*)",
+      "Bash(git checkout:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

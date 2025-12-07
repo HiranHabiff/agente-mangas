@@ -1,0 +1,137 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: ankane/pgvector:latest
+    container_name: manga-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-manga_db}
+      POSTGRES_USER: ${DB_USER:-manga_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-manga123}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - ./storage/postgres/db:/var/lib/postgresql/data
+      - ./storage/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-manga_user} -d ${DB_NAME:-manga_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - manga-network
+
+  # pgAdmin (opcional, para gerenciar o banco visualmente)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: manga-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@manga.local}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin123}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: 'False'
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    networks:
+      - manga-network
+    depends_on:
+      - postgres
+
+  # Backend API + MCP Server
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        NODE_ENV: ${NODE_ENV:-development}
+    container_name: manga-backend
+    restart: unless-stopped
+    environment:
+      # Application
+      NODE_ENV: ${NODE_ENV:-development}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      PORT: ${PORT:-3000}
+      # Database
+      DB_HOST: ${DB_HOST:-postgres}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_NAME: ${DB_NAME:-manga_db}
+      DB_USER: ${DB_USER:-manga_user}
+      DB_PASSWORD: ${DB_PASSWORD:-manga123}
+      # Storage paths
+      IMAGES_PATH: ${IMAGES_PATH:-/app/storage/images}
+      STORAGE_PATH: ${STORAGE_PATH:-/app/storage}
+      TEMP_PATH: ${TEMP_PATH:-/app/storage/temp}
+      # AI APIs
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      GOOGLE_SEARCH_API_KEY: ${GOOGLE_SEARCH_API_KEY}
+      GOOGLE_SEARCH_ENGINE_ID: ${GOOGLE_SEARCH_ENGINE_ID}
+      # MCP
+      MCP_SERVER_NAME: ${MCP_SERVER_NAME:-manga-agent-mcp}
+      MCP_SERVER_VERSION: ${MCP_SERVER_VERSION:-1.0.0}
+    ports:
+      - "${BACKEND_PORT:-3000}:3000"
+    volumes:
+      # Hot reload - mapeia src/ para desenvolvimento
+      - ./backend/src:/app/src
+      - ./backend/package.json:/app/package.json:ro
+      - ./backend/tsconfig.json:/app/tsconfig.json:ro
+      # Node modules (evita conflitos)
+      - backend-node-modules:/app/node_modules
+      # Logs
+      - ./backend/logs:/app/logs
+      # Storage compartilhado (imagens, etc.)
+      - ./storage:/app/storage
+    networks:
+      - manga-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: npm run dev
+
+  # Frontend React
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NODE_ENV: ${NODE_ENV:-development}
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
+    container_name: manga-frontend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
+    ports:
+      - "${FRONTEND_PORT:-5173}:5173"
+    volumes:
+      # Hot reload - mapeia src/ para desenvolvimento
+      - ./frontend/src:/app/src:ro
+      - ./frontend/public:/app/public:ro
+      - ./frontend/index.html:/app/index.html:ro
+      - ./frontend/package.json:/app/package.json:ro
+      - ./frontend/tsconfig.json:/app/tsconfig.json:ro
+      - ./frontend/vite.config.ts:/app/vite.config.ts:ro
+      # Node modules (evita conflitos)
+      - frontend-node-modules:/app/node_modules
+      # Storage compartilhado (imagens, etc.)
+      - ./storage:/app/storage:ro
+    networks:
+      - manga-network
+    depends_on:
+      - backend
+    command: npm run dev -- --host 0.0.0.0
+
+networks:
+  manga-network:
+    driver: bridge
+
+volumes:
+  backend-node-modules:
+  frontend-node-modules:
+  pgadmin-data:
