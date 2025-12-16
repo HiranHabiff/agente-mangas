@@ -160,4 +160,42 @@ export const remindersApi = {
   },
 };
 
+// Duplicates endpoints
+export const duplicatesApi = {
+  list: async (): Promise<{
+    total_groups: number;
+    total_duplicates: number;
+    groups: { group: MangaComplete[]; similarity: string }[];
+  }> => {
+    const { data } = await api.get(API_ENDPOINTS.duplicates);
+    return data;
+  },
+
+  // Merge mangas: keep target, delete sources
+  merge: async (targetId: string, sourceIds: string[]): Promise<{
+    success: boolean;
+    message: string;
+    manga: MangaComplete;
+  }> => {
+    const { data } = await api.post(`${API_ENDPOINTS.duplicates}/merge`, {
+      targetId,
+      sourceIds,
+    });
+    return data;
+  },
+
+  // Delete multiple mangas
+  deleteMultiple: async (ids: string[], permanent: boolean = true): Promise<{
+    success: boolean;
+    message: string;
+    deletedCount: number;
+  }> => {
+    const { data } = await api.post(`${API_ENDPOINTS.duplicates}/delete-multiple`, {
+      ids,
+      permanent,
+    });
+    return data;
+  },
+};
+
 export default api;

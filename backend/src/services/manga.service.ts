@@ -1,6 +1,7 @@
 import { mangaRepository } from '../repositories/manga.repository.js';
 import { sessionRepository } from '../repositories/session.repository.js';
 import { pool } from '../config/database.js';
+import { imageService } from './image.service.js';
 import type {
   Manga,
   MangaComplete,
@@ -112,6 +113,15 @@ export class MangaService {
       throw new Error('Manga not found');
     }
 
+    // If permanent deletion, also delete the image file
+    if (permanent && existing.image_filename) {
+      logger.info('Deleting associated image file', {
+        mangaId: id,
+        filename: existing.image_filename
+      });
+      imageService.deleteImage(existing.image_filename);
+    }
+
     await mangaRepository.delete(id, permanent);
   }
 
@@ -220,6 +230,164 @@ export class MangaService {
   // Get all mangas (for admin/export)
   async getAllMangas(): Promise<Manga[]> {
     return await mangaRepository.findAll();
+  }
+
+  // Find potential duplicate mangas
+  async findDuplicates(): Promise<{ group: MangaComplete[], similarity: string }[]> {
+    logger.info('Finding duplicate mangas');
+    return await mangaRepository.findDuplicates();
+  }
+
+  // Merge multiple mangas into one (keep the target, delete the others)
+  async mergeMangas(targetId: string, sourceIds: string[]): Promise<MangaComplete> {
+    logger.info('Merging mangas', { targetId, sourceIds });
+
+    // Get target manga
+    const target = await mangaRepository.findCompleteById(targetId);
+    if (!target) {
+      throw new Error('Target manga not found');
+    }
+
+    // Collect data from all sources to merge
+    const allTags = new Set<string>(target.tags || []);
+    const allNames = new Set<string>(target.alternative_names || []);
+    let highestChapter = target.last_chapter_read || 0;
+    let highestRating = target.rating ? Number(target.rating) : 0;
+    let bestSynopsis = target.synopsis || '';
+    let totalChapters = target.total_chapters || 0;
+    const userNotes: string[] = target.user_notes ? [target.user_notes] : [];
+
+    // Process each source manga
+    for (const sourceId of sourceIds) {
+      if (sourceId === targetId) continue;
+
+      const source = await mangaRepository.findCompleteById(sourceId);
+      if (!source) {
+        logger.warn('Source manga not found, skipping', { sourceId });
+        continue;
+      }
+
+      // Collect tags
+      if (source.tags) {
+        source.tags.forEach(tag => allTags.add(tag));
+      }
+
+      // Collect alternative names (including primary title of source)
+      allNames.add(source.primary_title);
+      if (source.alternative_names) {
+        source.alternative_names.forEach(name => allNames.add(name));
+      }
+
+      // Keep highest chapter read
+      if (source.last_chapter_read && source.last_chapter_read > highestChapter) {
+        highestChapter = source.last_chapter_read;
+      }
+
+      // Keep highest rating
+      if (source.rating && Number(source.rating) > highestRating) {
+        highestRating = Number(source.rating);
+      }
+
+      // Keep longest synopsis
+      if (source.synopsis && source.synopsis.length > bestSynopsis.length) {
+        bestSynopsis = source.synopsis;
+      }
+
+      // Keep highest total chapters
+      if (source.total_chapters && source.total_chapters > totalChapters) {
+        totalChapters = source.total_chapters;
+      }
+
+      // Collect user notes
+      if (source.user_notes) {
+        userNotes.push(`[De ${source.primary_title}]: ${source.user_notes}`);
+      }
+
+      // Delete source manga (permanent) and its image
+      if (source.image_filename) {
+        imageService.deleteImage(source.image_filename);
+      }
+      await mangaRepository.delete(sourceId, true);
+      logger.info('Source manga deleted', { sourceId, title: source.primary_title });
+    }
+
+    // Remove target's primary title from alternative names if present
+    allNames.delete(target.primary_title);
+
+    // Get current tags and names for comparison
+    const currentTags = new Set(target.tags || []);
+    const currentNames = new Set(target.alternative_names || []);
+
+    // Calculate tags and names to add
+    const tagsToAdd = [...allTags].filter(t => !currentTags.has(t));
+    const namesToAdd = [...allNames].filter(n => !currentNames.has(n));
+
+    // Update target manga with merged data
+    const updateData: UpdateMangaInput = {};
+
+    if (tagsToAdd.length > 0) {
+      updateData.add_tags = tagsToAdd;
+    }
+
+    if (namesToAdd.length > 0) {
+      updateData.add_names = namesToAdd;
+    }
+
+    if (highestChapter > (target.last_chapter_read || 0)) {
+      updateData.last_chapter_read = highestChapter;
+    }
+
+    if (highestRating > (target.rating ? Number(target.rating) : 0)) {
+      updateData.rating = highestRating;
+    }
+
+    if (bestSynopsis.length > (target.synopsis?.length || 0)) {
+      updateData.synopsis = bestSynopsis;
+    }
+
+    if (totalChapters > (target.total_chapters || 0)) {
+      updateData.total_chapters = totalChapters;
+    }
+
+    if (userNotes.length > 1) {
+      updateData.user_notes = userNotes.join('\n\n');
+    }
+
+    // Apply updates if any
+    if (Object.keys(updateData).length > 0) {
+      await mangaRepository.update(targetId, updateData);
+    }
+
+    // Always update the updated_at timestamp after merge
+    await mangaRepository.touchUpdatedAt(targetId);
+
+    // Return updated target
+    const mergedManga = await mangaRepository.findCompleteById(targetId);
+    logger.info('Manga merge completed', {
+      targetId,
+      mergedCount: sourceIds.length,
+      finalTags: mergedManga?.tags?.length || 0,
+      finalNames: mergedManga?.alternative_names?.length || 0
+    });
+
+    return mergedManga!;
+  }
+
+  // Delete multiple mangas
+  async deleteMultiple(ids: string[], permanent: boolean = false): Promise<number> {
+    logger.info('Deleting multiple mangas', { count: ids.length, permanent });
+
+    let deleted = 0;
+    for (const id of ids) {
+      try {
+        await this.deleteManga(id, permanent);
+        deleted++;
+      } catch (error) {
+        logger.error('Error deleting manga in batch', { mangaId: id, error });
+      }
+    }
+
+    return deleted;
   }
 
   // Batch update mangas (for migration)

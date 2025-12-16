@@ -1,4 +1,4 @@
-import { createWriteStream, existsSync, mkdirSync } from 'fs';
+import { createWriteStream, existsSync, mkdirSync, unlinkSync } from 'fs';
 import { pipeline } from 'stream/promises';
 import { Readable } from 'stream';
 import { resolve, extname } from 'path';
@@ -115,6 +115,28 @@ export class ImageService {
   imageExists(filename: string): boolean {
     const filepath = this.getImagePath(filename);
     return existsSync(filepath);
+  }
+
+  // Delete image file
+  deleteImage(filename: string): boolean {
+    try {
+      const filepath = this.getImagePath(filename);
+
+      if (existsSync(filepath)) {
+        unlinkSync(filepath);
+        logger.info('Image deleted successfully', { filename, filepath });
+        return true;
+      } else {
+        logger.warn('Image file not found for deletion', { filename, filepath });
+        return false;
+      }
+    } catch (error) {
+      logger.error('Error deleting image', {
+        filename,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      return false;
+    }
   }
 
   // Get image URL for frontend

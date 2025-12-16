@@ -23,12 +23,30 @@ import {
   Select,
   NumberInput,
   Dialog,
+  Portal,
 } from '@chakra-ui/react';
-import { FiEdit2, FiTrash2, FiArrowLeft, FiStar, FiBookOpen, FiCalendar, FiTag, FiChevronLeft, FiChevronRight, FiMessageSquare } from 'react-icons/fi';
-import { mangaApi } from '../services/api';
+import { FiEdit2, FiTrash2, FiArrowLeft, FiStar, FiBookOpen, FiCalendar, FiTag, FiChevronLeft, FiChevronRight, FiMessageSquare, FiGitMerge, FiAlertTriangle } from 'react-icons/fi';
+import { mangaApi, duplicatesApi } from '../services/api';
 import { getImageUrl } from '../config/api';
 import { MangaChatModal } from '../components/manga/MangaChatModal';
+import { MultiSelect, type MultiSelectOption } from '../components/ui/MultiSelect';
+import { ChipInput } from '../components/ui/ChipInput';
+import { StarRating } from '../components/ui/StarRating';
 import type { MangaComplete } from '../types/manga';
+
+const getTagColor = (tag: string): string => {
+  const t = tag.toLowerCase();
+  if (['ação', 'action', 'luta', 'artes marciais'].some(x => t.includes(x))) return 'red';
+  if (['romance', 'amor', 'shoujo'].some(x => t.includes(x))) return 'pink';
+  if (['comédia', 'comedy', 'humor'].some(x => t.includes(x))) return 'yellow';
+  if (['fantasia', 'fantasy', 'magia'].some(x => t.includes(x))) return 'purple';
+  if (['aventura', 'adventure'].some(x => t.includes(x))) return 'orange';
+  if (['drama'].some(x => t.includes(x))) return 'blue';
+  if (['horror', 'terror', 'suspense'].some(x => t.includes(x))) return 'gray';
+  if (['sci-fi', 'ficção científica', 'mecha'].some(x => t.includes(x))) return 'cyan';
+  if (['slice of life', 'cotidiano'].some(x => t.includes(x))) return 'green';
+  return 'purple';
+};
 
 export function MangaDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -39,55 +57,144 @@ export function MangaDetailPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState<any>({});
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Duplicates state
+  const [duplicates, setDuplicates] = useState<MangaComplete[]>([]);
+  const [loadingDuplicates, setLoadingDuplicates] = useState(false);
+  const [isMergeDialogOpen, setIsMergeDialogOpen] = useState(false);
+  const [isMerging, setIsMerging] = useState(false);
+  const [selectedDuplicateId, setSelectedDuplicateId] = useState<string | null>(null);
+
+  // Separate state for tags and alternative names
+  const [currentTags, setCurrentTags] = useState<string[]>([]);
+  const [originalTags, setOriginalTags] = useState<string[]>([]);
+  const [currentNames, setCurrentNames] = useState<string[]>([]);
+  const [originalNames, setOriginalNames] = useState<string[]>([]);
+  const [availableTags, setAvailableTags] = useState<MultiSelectOption[]>([]);
 
   useEffect(() => {
     if (id) {
       loadManga();
+      loadDuplicates();
     }
+    loadTags();
   }, [id]);
+
+  const loadTags = async () => {
+    try {
+      const tags = await mangaApi.getTags();
+      setAvailableTags(tags.map((t: any) => ({ value: t.name, label: t.name })));
+    } catch (err) {
+      console.error('Erro ao carregar tags:', err);
+    }
+  };
+
+  const loadDuplicates = async () => {
+    if (!id) return;
+
+    try {
+      setLoadingDuplicates(true);
+      const data = await duplicatesApi.list();
+
+      // Find duplicate group that contains this manga
+      const myGroup = data.groups.find(g =>
+        g.group.some(m => m.id === id)
+      );
+
+      if (myGroup) {
+        // Filter out the current manga from duplicates
+        const otherDuplicates = myGroup.group.filter(m => m.id !== id);
+        setDuplicates(otherDuplicates);
+      } else {
+        setDuplicates([]);
+      }
+    } catch (err) {
+      console.error('Erro ao carregar duplicatas:', err);
+      setDuplicates([]);
+    } finally {
+      setLoadingDuplicates(false);
+    }
+  };
+
+  const handleMerge = async () => {
+    if (!id || !selectedDuplicateId) return;
+
+    try {
+      setIsMerging(true);
+
+      // Current manga is the target (keep), selected duplicate is the source (delete)
+      await duplicatesApi.merge(id, [selectedDuplicateId]);
+
+      // Reload data
+      await loadManga(false);
+      await loadDuplicates();
+
+      setIsMergeDialogOpen(false);
+      setSelectedDuplicateId(null);
+    } catch (err) {
+      console.error('Erro ao mesclar:', err);
+      alert('Erro ao mesclar mangás');
+    } finally {
+      setIsMerging(false);
+    }
+  };
+
+  const handleDeleteDuplicate = async (duplicateId: string) => {
+    if (!confirm('Tem certeza que deseja excluir esta duplicata?')) return;
+
+    try {
+      await duplicatesApi.deleteMultiple([duplicateId], true);
+      await loadDuplicates();
+    } catch (err) {
+      console.error('Erro ao excluir duplicata:', err);
+      alert('Erro ao excluir duplicata');
+    }
+  };
 
   // Sincronizar editData quando entrar no modo de edição
   useEffect(() => {
     if (isEditing && manga) {
       setEditData({
         primary_title: manga.primary_title,
-        alternative_names: manga.alternative_names?.join(', ') || '',
         synopsis: manga.synopsis || '',
         rating: manga.rating || '',
         status: manga.status || 'reading',
+        last_chapter_read: manga.last_chapter_read || 0,
         total_chapters: manga.total_chapters || '',
-        tags: manga.tags?.join(', ') || '',
         url: manga.url || '',
         user_notes: manga.user_notes || '',
       });
+
+      // Copiar arrays de tags e nomes alternativos
+      const tagsCopy = manga.tags ? [...manga.tags] : [];
+      const namesCopy = manga.alternative_names ? [...manga.alternative_names] : [];
+
+      setCurrentTags(tagsCopy);
+      setOriginalTags(tagsCopy);
+      setCurrentNames(namesCopy);
+      setOriginalNames(namesCopy);
     }
   }, [isEditing, manga]);
 
-  const loadManga = async () => {
+  const loadManga = async (showLoading = true) => {
     if (!id) return;
-    
+
     try {
-      setLoading(true);
+      if (showLoading) {
+        setLoading(true);
+      }
       setError(null);
       const data = await mangaApi.getById(id);
-      console.log('Manga loaded:', data);
       setManga(data);
-      setEditData({
-        primary_title: data.primary_title,
-        alternative_names: data.alternative_names?.join(', ') || '',
-        synopsis: data.synopsis || '',
-        rating: data.rating || '',
-        status: data.status || 'reading',
-        total_chapters: data.total_chapters || '',
-        tags: data.tags?.join(', ') || '',
-        url: data.url || '',
-        user_notes: data.user_notes || '',
-      });
     } catch (err) {
       console.error('Error loading manga:', err);
       setError(err instanceof Error ? err.message : 'Erro ao carregar mangá');
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
     }
   };
 
@@ -95,6 +202,14 @@ export function MangaDetailPage() {
     if (!id || !manga) return;
 
     try {
+      // Calculate which tags were added and removed
+      const tagsToAdd = currentTags.filter(tag => !originalTags.includes(tag));
+      const tagsToRemove = originalTags.filter(tag => !currentTags.includes(tag));
+
+      // Calculate which names were added and removed
+      const namesToAdd = currentNames.filter(name => !originalNames.includes(name));
+      const namesToRemove = originalNames.filter(name => !currentNames.includes(name));
+
       const updates: any = {
         primary_title: editData.primary_title,
         synopsis: editData.synopsis,
@@ -102,54 +217,29 @@ export function MangaDetailPage() {
         user_notes: editData.user_notes,
         status: editData.status,
         rating: editData.rating ? parseFloat(editData.rating) : undefined,
+        last_chapter_read: editData.last_chapter_read ? parseInt(editData.last_chapter_read) : undefined,
         total_chapters: editData.total_chapters ? parseInt(editData.total_chapters) : undefined,
       };
 
-      // Processar nomes alternativos (add_names)
-      if (editData.alternative_names) {
-        const newNames = editData.alternative_names
-          .split(',')
-          .map((s: string) => s.trim())
-          .filter(Boolean);
-        const currentNames = manga?.alternative_names || [];
-        
-        // Adicionar nomes novos
-        const namesToAdd = newNames.filter(n => !currentNames.includes(n));
-        if (namesToAdd.length > 0) {
-          updates.add_names = namesToAdd;
-        }
-        
-        // Remover nomes que não estão mais na lista
-        const namesToRemove = currentNames.filter(n => !newNames.includes(n));
-        if (namesToRemove.length > 0) {
-          updates.remove_names = namesToRemove;
-        }
+      // Add names changes if any
+      if (namesToAdd.length > 0) {
+        updates.add_names = namesToAdd;
+      }
+      if (namesToRemove.length > 0) {
+        updates.remove_names = namesToRemove;
       }
 
-      // Processar tags (add_tags)
-      if (editData.tags) {
-        const newTags = editData.tags
-          .split(',')
-          .map((s: string) => s.trim())
-          .filter(Boolean);
-        const currentTags = manga?.tags || [];
-        
-        // Adicionar tags novas
-        const tagsToAdd = newTags.filter(t => !currentTags.includes(t));
-        if (tagsToAdd.length > 0) {
-          updates.add_tags = tagsToAdd;
-        }
-        
-        // Remover tags que não estão mais na lista
-        const tagsToRemove = currentTags.filter(t => !newTags.includes(t));
-        if (tagsToRemove.length > 0) {
-          updates.remove_tags = tagsToRemove;
-        }
+      // Add tags changes if any
+      if (tagsToAdd.length > 0) {
+        updates.add_tags = tagsToAdd;
+      }
+      if (tagsToRemove.length > 0) {
+        updates.remove_tags = tagsToRemove;
       }
 
       await mangaApi.update(id, updates);
       setIsEditing(false);
-      loadManga();
+      loadManga(false);
     } catch (err) {
       console.error('Error updating manga:', err);
       alert('Erro ao atualizar mangá');
@@ -157,14 +247,16 @@ export function MangaDetailPage() {
   };
 
   const handleDelete = async () => {
-    if (!id || !confirm('Tem certeza que deseja excluir este mangá?')) return;
+    if (!id) return;
 
     try {
-      await mangaApi.delete(id);
+      setIsDeleting(true);
+      await mangaApi.delete(id, true); // permanent=true to also delete image file
       navigate('/mangas');
     } catch (err) {
       console.error('Error deleting manga:', err);
-      alert('Erro ao excluir mangá');
+      setIsDeleting(false);
+      setIsDeleteDialogOpen(false);
     }
   };
 
@@ -173,7 +265,7 @@ export function MangaDetailPage() {
 
     try {
       await mangaApi.trackChapter(id, newChapter);
-      loadManga();
+      loadManga(false);
     } catch (err) {
       console.error('Error updating chapter:', err);
       alert('Erro ao atualizar capítulo');
@@ -274,7 +366,7 @@ export function MangaDetailPage() {
               <IconButton
                 aria-label="Excluir mangá"
                 icon={<Box as={FiTrash2} />}
-                onClick={handleDelete}
+                onClick={() => setIsDeleteDialogOpen(true)}
                 colorScheme="red"
                 variant="outline"
                 size="lg"
@@ -402,149 +494,145 @@ export function MangaDetailPage() {
           {/* Details Section */}
           <GridItem>
             <VStack align="stretch" gap={6}>
-              {/* Title Card */}
-              <Card.Root bg="gray.800" borderColor="gray.700">
-                <Card.Body>
-                  <VStack align="stretch" gap={4}>
-                    {/* Title */}
-                    {isEditing ? (
-                      <Input
-                        value={editData.primary_title}
-                        onChange={(e) => setEditData({ ...editData, primary_title: e.target.value })}
-                        size="lg"
-                        fontWeight="bold"
-                        bg="gray.700"
-                        borderColor="gray.600"
-                        color="white"
-                        fontSize="2xl"
-                        _focus={{ borderColor: 'blue.500', shadow: 'md' }}
-                      />
-                    ) : (
-                      <Heading size="2xl" color="white" lineHeight="1.2">
-                        {manga.primary_title}
-                      </Heading>
-                    )}
+              {/* View Mode Cards */}
+              {!isEditing && (
+                <>
+                  {/* Title Card */}
+                  <Card.Root bg="gray.800" borderColor="gray.700">
+                    <Card.Body>
+                      <VStack align="stretch" gap={4}>
+                        {/* Title */}
+                        <Heading size="2xl" color="white" lineHeight="1.2">
+                          {manga.primary_title}
+                        </Heading>
 
-                    {/* Status and Rating Badges */}
-                    <Flex flexWrap="wrap" gap={3}>
-                      <Badge 
-                        colorScheme={getStatusColor(manga.status)} 
-                        fontSize="md" 
-                        px={4} 
-                        py={2}
-                        borderRadius="full"
-                        fontWeight="semibold"
-                      >
-                        {getStatusLabel(manga.status)}
-                      </Badge>
-                      {manga.rating && (
-                        <Badge 
-                          colorScheme="yellow" 
-                          fontSize="md" 
-                          px={4} 
-                          py={2}
-                          borderRadius="full"
-                          fontWeight="semibold"
-                        >
-                          <HStack gap={1}>
-                            <Box as={FiStar} />
-                            <span>{manga.rating.toFixed(1)}</span>
-                          </HStack>
-                        </Badge>
-                      )}
-                      <Badge 
-                        colorScheme="blue" 
-                        fontSize="md" 
-                        px={4} 
-                        py={2}
-                        borderRadius="full"
-                        fontWeight="semibold"
-                      >
-                        {manga.last_chapter_read || 0} / {manga.total_chapters || '?'} caps
-                      </Badge>
-                    </Flex>
-
-                    {/* Alternative Names */}
-                    {manga.alternative_names && manga.alternative_names.length > 0 && (
-                      <Box>
-                        <Text fontSize="xs" color="gray.500" fontWeight="semibold" mb={2} textTransform="uppercase">
-                          Nomes Alternativos
-                        </Text>
-                        <Text color="gray.300" fontSize="sm" lineHeight="1.6">
-                          {manga.alternative_names.join(' • ')}
-                        </Text>
-                      </Box>
-                    )}
-                  </VStack>
-                </Card.Body>
-              </Card.Root>
-
-              {/* Synopsis Card */}
-              <Card.Root bg="gray.800" borderColor="gray.700">
-                <Card.Body>
-                  <VStack align="stretch" gap={4}>
-                    <Heading size="md" color="blue.400">Sinopse</Heading>
-                    {isEditing ? (
-                      <Textarea
-                        value={editData.synopsis}
-                        onChange={(e) => setEditData({ ...editData, synopsis: e.target.value })}
-                        rows={8}
-                        bg="gray.700"
-                        borderColor="gray.600"
-                        color="white"
-                        fontSize="md"
-                        lineHeight="1.7"
-                        _focus={{ borderColor: 'blue.500', shadow: 'md' }}
-                      />
-                    ) : (
-                      <Box>
-                        {manga.synopsis ? (
-                          <Text 
-                            color="gray.200" 
-                            whiteSpace="pre-wrap" 
-                            fontSize="md" 
-                            lineHeight="1.8"
-                          >
-                            {manga.synopsis}
-                          </Text>
-                        ) : (
-                          <Text color="gray.500" fontStyle="italic" fontSize="md">
-                            Nenhuma sinopse disponível
-                          </Text>
-                        )}
-                      </Box>
-                    )}
-                  </VStack>
-                </Card.Body>
-              </Card.Root>
-
-              {/* Tags Card */}
-              {manga.tags && manga.tags.length > 0 && (
-                <Card.Root bg="gray.800" borderColor="gray.700">
-                  <Card.Body>
-                    <VStack align="stretch" gap={4}>
-                      <HStack>
-                        <Box as={FiTag} color="purple.400" fontSize="20px" />
-                        <Heading size="md" color="purple.400">Tags</Heading>
-                      </HStack>
-                      <Flex flexWrap="wrap" gap={3}>
-                        {manga.tags.map((tag) => (
-                          <Badge 
-                            key={tag} 
-                            colorScheme="purple" 
-                            fontSize="sm"
+                        {/* Status and Rating Badges */}
+                        <Flex flexWrap="wrap" gap={3}>
+                          <Badge
+                            colorScheme={getStatusColor(manga.status)}
+                            fontSize="md"
                             px={4}
                             py={2}
                             borderRadius="full"
-                            fontWeight="medium"
+                            fontWeight="semibold"
                           >
-                            {tag}
+                            {getStatusLabel(manga.status)}
                           </Badge>
-                        ))}
-                      </Flex>
-                    </VStack>
-                  </Card.Body>
-                </Card.Root>
+                          {manga.rating && (
+                            <Badge
+                              colorScheme="yellow"
+                              fontSize="md"
+                              px={4}
+                              py={2}
+                              borderRadius="full"
+                              fontWeight="semibold"
+                            >
+                              <HStack gap={1}>
+                                <Box as={FiStar} />
+                                <span>{Number(manga.rating).toFixed(1)}</span>
+                              </HStack>
+                            </Badge>
+                          )}
+                          <Badge
+                            colorScheme="blue"
+                            fontSize="md"
+                            px={4}
+                            py={2}
+                            borderRadius="full"
+                            fontWeight="semibold"
+                          >
+                            {manga.last_chapter_read || 0} / {manga.total_chapters || '?'} caps
+                          </Badge>
+                        </Flex>
+
+                        {/* Alternative Names */}
+                        {manga.alternative_names && manga.alternative_names.length > 0 && (
+                          <Box>
+                            <Text fontSize="xs" color="gray.500" fontWeight="semibold" mb={2} textTransform="uppercase">
+                              Nomes Alternativos
+                            </Text>
+                            <Text color="gray.300" fontSize="sm" lineHeight="1.6">
+                              {manga.alternative_names.join(' • ')}
+                            </Text>
+                          </Box>
+                        )}
+                      </VStack>
+                    </Card.Body>
+                  </Card.Root>
+
+                  {/* Synopsis Card */}
+                  <Card.Root bg="gray.800" borderColor="gray.700">
+                    <Card.Body>
+                      <VStack align="stretch" gap={4}>
+                        <Heading size="md" color="blue.400">Sinopse</Heading>
+                        <Box>
+                          {manga.synopsis ? (
+                            <Text
+                              color="gray.200"
+                              whiteSpace="pre-wrap"
+                              fontSize="md"
+                              lineHeight="1.8"
+                            >
+                              {manga.synopsis}
+                            </Text>
+                          ) : (
+                            <Text color="gray.500" fontStyle="italic" fontSize="md">
+                              Nenhuma sinopse disponível
+                            </Text>
+                          )}
+                        </Box>
+                      </VStack>
+                    </Card.Body>
+                  </Card.Root>
+
+                  {/* Tags Card */}
+                  {manga.tags && manga.tags.length > 0 && (
+                    <Card.Root bg="gray.800" borderColor="gray.700">
+                      <Card.Body>
+                        <VStack align="stretch" gap={4}>
+                          <HStack>
+                            <Box as={FiTag} color="purple.400" fontSize="20px" />
+                            <Heading size="md" color="purple.400">Tags</Heading>
+                          </HStack>
+                          <Flex flexWrap="wrap" gap={3}>
+                            {manga.tags.map((tag) => (
+                              <Badge
+                                key={tag}
+                                colorScheme="purple"
+                                fontSize="sm"
+                                px={4}
+                                py={2}
+                                borderRadius="full"
+                                fontWeight="medium"
+                              >
+                                {tag}
+                              </Badge>
+                            ))}
+                          </Flex>
+                        </VStack>
+                      </Card.Body>
+                    </Card.Root>
+                  )}
+
+                  {/* User Notes Card */}
+                  {manga.user_notes && (
+                    <Card.Root bg="gray.800" borderColor="gray.700">
+                      <Card.Body>
+                        <VStack align="stretch" gap={4}>
+                          <Heading size="md" color="orange.400">Minhas Notas</Heading>
+                          <Text
+                            color="gray.200"
+                            whiteSpace="pre-wrap"
+                            fontSize="md"
+                            lineHeight="1.8"
+                          >
+                            {manga.user_notes}
+                          </Text>
+                        </VStack>
+                      </Card.Body>
+                    </Card.Root>
+                  )}
+                </>
               )}
 
               {/* Edit Form Card */}
@@ -575,16 +663,15 @@ export function MangaDetailPage() {
                         <Text fontSize="sm" color="gray.300" mb={2} fontWeight="semibold">
                           Nomes Alternativos
                         </Text>
-                        <Input
-                          value={editData.alternative_names}
-                          onChange={(e) => setEditData({ ...editData, alternative_names: e.target.value })}
-                          bg="gray.700"
-                          borderColor="gray.600"
-                          color="white"
-                          size="lg"
-                          placeholder="Separe por vírgula: Nome 1, Nome 2, Nome 3"
-                          _focus={{ borderColor: 'blue.500', shadow: 'md' }}
+                        <ChipInput
+                          placeholder="Digite um nome e pressione Enter..."
+                          values={currentNames}
+                          onChange={setCurrentNames}
+                          colorScheme="cyan"
                         />
+                        <Text fontSize="xs" color="gray.500" mt={1}>
+                          Pressione Enter para adicionar
+                        </Text>
                       </Box>
 
                       {/* Sinopse */}
@@ -600,10 +687,12 @@ export function MangaDetailPage() {
                           borderColor="gray.600"
                           color="white"
                           fontSize="md"
+                          lineHeight="1.7"
+                          placeholder="Sinopse do mangá..."
                           _focus={{ borderColor: 'blue.500', shadow: 'md' }}
                         />
                       </Box>
-                      
+
                       <Grid templateColumns={{ base: '1fr', md: 'repeat(2, 1fr)' }} gap={6}>
                         <Box>
                           <Text fontSize="sm" color="gray.300" mb={2} fontWeight="semibold">
@@ -617,27 +706,47 @@ export function MangaDetailPage() {
                             <Select.Trigger bg="gray.700" borderColor="gray.600" color="white">
                               <Select.ValueText placeholder="Selecione o status" />
                             </Select.Trigger>
-                            <Select.Content bg="gray.700" borderColor="gray.600">
-                              <Select.Item item="reading" color="white">Lendo</Select.Item>
-                              <Select.Item item="completed" color="white">Completo</Select.Item>
-                              <Select.Item item="paused" color="white">Pausado</Select.Item>
-                              <Select.Item item="dropped" color="white">Abandonado</Select.Item>
-                              <Select.Item item="plan_to_read" color="white">Planos de Ler</Select.Item>
-                            </Select.Content>
+                            <Portal>
+                              <Select.Positioner>
+                                <Select.Content bg="gray.700" borderColor="gray.600">
+                                  <Select.Item item="reading" color="white">Lendo</Select.Item>
+                                  <Select.Item item="completed" color="white">Completo</Select.Item>
+                                  <Select.Item item="paused" color="white">Pausado</Select.Item>
+                                  <Select.Item item="dropped" color="white">Abandonado</Select.Item>
+                                  <Select.Item item="plan_to_read" color="white">Planos de Ler</Select.Item>
+                                </Select.Content>
+                              </Select.Positioner>
+                            </Portal>
                           </Select.Root>
                         </Box>
                         
                         <Box>
                           <Text fontSize="sm" color="gray.300" mb={2} fontWeight="semibold">
-                            Nota (0-10)
+                            Nota
+                          </Text>
+                          <HStack gap={3} align="center">
+                            <StarRating
+                              value={Number(editData.rating) || 0}
+                              onChange={(value) => setEditData({ ...editData, rating: String(value) })}
+                              max={10}
+                              size="22px"
+                              allowHalf
+                            />
+                            <Text color="gray.400" fontSize="sm" fontWeight="medium">
+                              {Number(editData.rating || 0).toFixed(1)}
+                            </Text>
+                          </HStack>
+                        </Box>
+                        
+                        <Box>
+                          <Text fontSize="sm" color="gray.300" mb={2} fontWeight="semibold">
+                            Último Capítulo Lido
                           </Text>
                           <Input
                             type="number"
                             min="0"
-                            max="10"
-                            step="0.1"
-                            value={editData.rating}
-                            onChange={(e) => setEditData({ ...editData, rating: e.target.value })}
+                            value={editData.last_chapter_read}
+                            onChange={(e) => setEditData({ ...editData, last_chapter_read: e.target.value })}
                             bg="gray.700"
                             borderColor="gray.600"
                             color="white"
@@ -645,13 +754,14 @@ export function MangaDetailPage() {
                             _focus={{ borderColor: 'blue.500', shadow: 'md' }}
                           />
                         </Box>
-                        
+
                         <Box>
                           <Text fontSize="sm" color="gray.300" mb={2} fontWeight="semibold">
                             Total de Capítulos
                           </Text>
                           <Input
                             type="number"
+                            min="0"
                             value={editData.total_chapters}
                             onChange={(e) => setEditData({ ...editData, total_chapters: e.target.value })}
                             bg="gray.700"
@@ -664,20 +774,21 @@ export function MangaDetailPage() {
                       </Grid>
 
                       {/* Tags */}
-                      <Box>
+                      <Box overflow="visible">
                         <Text fontSize="sm" color="gray.300" mb={2} fontWeight="semibold">
                           Tags
                         </Text>
-                        <Input
-                          value={editData.tags}
-                          onChange={(e) => setEditData({ ...editData, tags: e.target.value })}
-                          bg="gray.700"
-                          borderColor="gray.600"
-                          color="white"
-                          size="lg"
-                          placeholder="Separe por vírgula: Ação, Aventura, Fantasia"
-                          _focus={{ borderColor: 'blue.500', shadow: 'md' }}
+                        <MultiSelect
+                          placeholder="Buscar ou criar tags..."
+                          selected={currentTags}
+                          options={availableTags}
+                          onChange={setCurrentTags}
+                          getColor={getTagColor}
+                          allowCreate={true}
                         />
+                        <Text fontSize="xs" color="gray.500" mt={1}>
+                          Digite para buscar ou criar novas tags
+                        </Text>
                       </Box>
 
                       {/* URL */}
@@ -730,31 +841,7 @@ export function MangaDetailPage() {
                 </Card.Root>
               )}
 
-              {/* User Notes Card (view mode) */}
-              {!isEditing && manga.user_notes && (
-                <Card.Root bg="gray.800" borderColor="gray.700">
-                  <Card.Body>
-                    <VStack align="stretch" gap={4}>
-                      <Heading size="md" color="orange.400">📝 Minhas Notas</Heading>
-                      <Text 
-                        color="gray.200" 
-                        whiteSpace="pre-wrap" 
-                        fontSize="md" 
-                        lineHeight="1.8"
-                        p={4}
-                        bg="gray.700"
-                        borderRadius="md"
-                        borderLeft="4px solid"
-                        borderLeftColor="orange.500"
-                      >
-                        {manga.user_notes}
-                      </Text>
-                    </VStack>
-                  </Card.Body>
-                </Card.Root>
-              )}
-
-              {/* Metadata Card */}
+              {/* Metadata Card (always visible) */}
               <Card.Root bg="gray.800" borderColor="gray.700">
                 <Card.Body>
                   <VStack align="stretch" gap={4}>
@@ -762,7 +849,7 @@ export function MangaDetailPage() {
                       <Box as={FiCalendar} color="gray.400" fontSize="20px" />
                       <Heading size="sm" color="gray.300">Informações</Heading>
                     </HStack>
-                    <Grid templateColumns={{ base: '1fr', md: 'repeat(2, 1fr)' }} gap={6}>
+                    <Grid templateColumns={{ base: '1fr', md: 'repeat(3, 1fr)' }} gap={6}>
                       {manga.created_at && (
                         <Box>
                           <Text fontSize="xs" color="gray.500" fontWeight="semibold" mb={2} textTransform="uppercase">
@@ -793,10 +880,139 @@ export function MangaDetailPage() {
                           </Text>
                         </Box>
                       )}
+                      <Box>
+                        <Text fontSize="xs" color="gray.500" fontWeight="semibold" mb={2} textTransform="uppercase">
+                          Última leitura
+                        </Text>
+                        <Text color={manga.last_read_at ? 'green.300' : 'gray.500'} fontSize="sm" fontWeight="medium">
+                          {manga.last_read_at
+                            ? new Date(manga.last_read_at).toLocaleDateString('pt-BR', {
+                                day: '2-digit',
+                                month: 'long',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })
+                            : 'Nunca lido'}
+                        </Text>
+                      </Box>
                     </Grid>
                   </VStack>
                 </Card.Body>
               </Card.Root>
+
+              {/* Duplicates Card */}
+              {!isEditing && duplicates.length > 0 && (
+                <Card.Root bg="gray.800" borderColor="orange.600" borderWidth="2px">
+                  <Card.Body>
+                    <VStack align="stretch" gap={4}>
+                      <HStack justify="space-between">
+                        <HStack>
+                          <Box as={FiAlertTriangle} color="orange.400" fontSize="20px" />
+                          <Heading size="sm" color="orange.400">
+                            Possíveis Duplicatas ({duplicates.length})
+                          </Heading>
+                        </HStack>
+                        <Button
+                          as="a"
+                          href="/duplicates"
+                          size="xs"
+                          variant="ghost"
+                          color="orange.300"
+                          _hover={{ bg: 'orange.900' }}
+                        >
+                          Ver Todos
+                        </Button>
+                      </HStack>
+
+                      <Text color="gray.400" fontSize="sm">
+                        Foram encontrados mangás com nomes similares. Você pode mesclar os dados ou excluir as duplicatas.
+                      </Text>
+
+                      <VStack align="stretch" gap={3}>
+                        {duplicates.map((dup) => (
+                          <Box
+                            key={dup.id}
+                            p={3}
+                            bg="gray.700"
+                            borderRadius="md"
+                            borderWidth="1px"
+                            borderColor="gray.600"
+                          >
+                            <Flex justify="space-between" align="start" gap={3}>
+                              <HStack gap={3} flex={1}>
+                                {dup.image_filename ? (
+                                  <Image
+                                    src={getImageUrl(dup.image_filename)}
+                                    alt={dup.primary_title}
+                                    w="50px"
+                                    h="70px"
+                                    objectFit="cover"
+                                    borderRadius="sm"
+                                  />
+                                ) : (
+                                  <Center w="50px" h="70px" bg="gray.600" borderRadius="sm">
+                                    <Text color="gray.500" fontSize="xs">N/A</Text>
+                                  </Center>
+                                )}
+                                <VStack align="start" gap={1} flex={1}>
+                                  <Text color="white" fontWeight="semibold" fontSize="sm" lineClamp={1}>
+                                    {dup.primary_title}
+                                  </Text>
+                                  <HStack gap={2} flexWrap="wrap">
+                                    <Badge colorScheme={getStatusColor(dup.status)} fontSize="xs">
+                                      {getStatusLabel(dup.status)}
+                                    </Badge>
+                                    <Badge
+                                      colorScheme={(dup.last_chapter_read || 0) > 0 ? 'blue' : 'gray'}
+                                      fontSize="xs"
+                                    >
+                                      Cap. {dup.last_chapter_read || 0}
+                                    </Badge>
+                                    {dup.rating && (
+                                      <Badge colorScheme="yellow" fontSize="xs">
+                                        ★ {Number(dup.rating).toFixed(1)}
+                                      </Badge>
+                                    )}
+                                  </HStack>
+                                  {dup.alternative_names && dup.alternative_names.length > 0 && (
+                                    <Text color="gray.500" fontSize="xs" lineClamp={1}>
+                                      {dup.alternative_names.slice(0, 2).join(', ')}
+                                      {dup.alternative_names.length > 2 && ` +${dup.alternative_names.length - 2}`}
+                                    </Text>
+                                  )}
+                                </VStack>
+                              </HStack>
+
+                              <HStack gap={2}>
+                                <Button
+                                  size="xs"
+                                  colorScheme="purple"
+                                  leftIcon={<Box as={FiGitMerge} />}
+                                  onClick={() => {
+                                    setSelectedDuplicateId(dup.id);
+                                    setIsMergeDialogOpen(true);
+                                  }}
+                                >
+                                  Mesclar
+                                </Button>
+                                <IconButton
+                                  aria-label="Excluir duplicata"
+                                  icon={<Box as={FiTrash2} />}
+                                  size="xs"
+                                  colorScheme="red"
+                                  variant="ghost"
+                                  onClick={() => handleDeleteDuplicate(dup.id)}
+                                />
+                              </HStack>
+                            </Flex>
+                          </Box>
+                        ))}
+                      </VStack>
+                    </VStack>
+                  </Card.Body>
+                </Card.Root>
+              )}
             </VStack>
           </GridItem>
         </Grid>
@@ -811,6 +1027,179 @@ export function MangaDetailPage() {
         manga={manga}
       />
     )}
+
+    {/* Delete Confirmation Dialog */}
+    <Dialog.Root
+      open={isDeleteDialogOpen}
+      onOpenChange={(e) => !e.open && setIsDeleteDialogOpen(false)}
+      role="alertdialog"
+    >
+      <Dialog.Backdrop bg="blackAlpha.800" />
+      <Dialog.Positioner>
+        <Dialog.Content bg="gray.800" borderColor="red.600" borderWidth="2px" maxW="450px">
+          <Dialog.Header bg="gray.800" borderBottomWidth="1px" borderColor="gray.700">
+            <HStack gap={3}>
+              <Box
+                p={2}
+                bg="red.900"
+                borderRadius="full"
+              >
+                <Box as={FiTrash2} color="red.400" fontSize="20px" />
+              </Box>
+              <Dialog.Title color="white" fontSize="xl" fontWeight="bold">
+                Excluir Mangá
+              </Dialog.Title>
+            </HStack>
+          </Dialog.Header>
+
+          <Dialog.Body py={6}>
+            <VStack align="stretch" gap={4}>
+              <Text color="gray.200" fontSize="md">
+                Tem certeza que deseja excluir <Text as="span" fontWeight="bold" color="white">"{manga?.primary_title}"</Text>?
+              </Text>
+              <Box bg="red.900" p={4} borderRadius="md" borderWidth="1px" borderColor="red.700">
+                <Text color="red.200" fontSize="sm">
+                  ⚠️ Esta ação não pode ser desfeita. Todos os dados do mangá, incluindo progresso de leitura, tags e notas serão perdidos permanentemente.
+                </Text>
+              </Box>
+            </VStack>
+          </Dialog.Body>
+
+          <Dialog.Footer borderTopWidth="1px" borderColor="gray.700">
+            <HStack justify="flex-end" w="100%" gap={3}>
+              <Button
+                variant="outline"
+                onClick={() => setIsDeleteDialogOpen(false)}
+                color="gray.300"
+                borderColor="gray.600"
+                _hover={{ bg: 'gray.700', color: 'white' }}
+                disabled={isDeleting}
+              >
+                Cancelar
+              </Button>
+              <Button
+                colorScheme="red"
+                onClick={handleDelete}
+                bg="red.600"
+                _hover={{ bg: 'red.700' }}
+                loading={isDeleting}
+                loadingText="Excluindo..."
+              >
+                Excluir Mangá
+              </Button>
+            </HStack>
+          </Dialog.Footer>
+        </Dialog.Content>
+      </Dialog.Positioner>
+    </Dialog.Root>
+
+    {/* Merge Confirmation Dialog */}
+    <Dialog.Root
+      open={isMergeDialogOpen}
+      onOpenChange={(e) => !e.open && setIsMergeDialogOpen(false)}
+      role="alertdialog"
+    >
+      <Dialog.Backdrop bg="blackAlpha.800" />
+      <Dialog.Positioner>
+        <Dialog.Content bg="gray.800" borderColor="purple.600" borderWidth="2px" maxW="500px">
+          <Dialog.Header bg="gray.800" borderBottomWidth="1px" borderColor="gray.700">
+            <HStack gap={3}>
+              <Box
+                p={2}
+                bg="purple.900"
+                borderRadius="full"
+              >
+                <Box as={FiGitMerge} color="purple.400" fontSize="20px" />
+              </Box>
+              <Dialog.Title color="white" fontSize="xl" fontWeight="bold">
+                Mesclar Mangás
+              </Dialog.Title>
+            </HStack>
+          </Dialog.Header>
+
+          <Dialog.Body py={6}>
+            <VStack align="stretch" gap={4}>
+              <Text color="gray.200" fontSize="md">
+                Os dados do mangá duplicado serão mesclados com <Text as="span" fontWeight="bold" color="white">"{manga?.primary_title}"</Text>.
+              </Text>
+
+              {selectedDuplicateId && duplicates.find(d => d.id === selectedDuplicateId) && (
+                <Box bg="gray.700" p={4} borderRadius="md" borderWidth="1px" borderColor="gray.600">
+                  <Text color="gray.400" fontSize="xs" mb={2} textTransform="uppercase">
+                    Será excluído:
+                  </Text>
+                  <HStack gap={3}>
+                    {duplicates.find(d => d.id === selectedDuplicateId)?.image_filename ? (
+                      <Image
+                        src={getImageUrl(duplicates.find(d => d.id === selectedDuplicateId)!.image_filename!)}
+                        alt=""
+                        w="40px"
+                        h="60px"
+                        objectFit="cover"
+                        borderRadius="sm"
+                      />
+                    ) : (
+                      <Center w="40px" h="60px" bg="gray.600" borderRadius="sm">
+                        <Text color="gray.500" fontSize="xs">N/A</Text>
+                      </Center>
+                    )}
+                    <VStack align="start" gap={1}>
+                      <Text color="white" fontWeight="semibold" fontSize="sm">
+                        {duplicates.find(d => d.id === selectedDuplicateId)?.primary_title}
+                      </Text>
+                      <HStack gap={2}>
+                        <Badge colorScheme="blue" fontSize="xs">
+                          Cap. {duplicates.find(d => d.id === selectedDuplicateId)?.last_chapter_read || 0}
+                        </Badge>
+                        {duplicates.find(d => d.id === selectedDuplicateId)?.rating && (
+                          <Badge colorScheme="yellow" fontSize="xs">
+                            ★ {Number(duplicates.find(d => d.id === selectedDuplicateId)?.rating).toFixed(1)}
+                          </Badge>
+                        )}
+                      </HStack>
+                    </VStack>
+                  </HStack>
+                </Box>
+              )}
+
+              <Box bg="purple.900" p={4} borderRadius="md" borderWidth="1px" borderColor="purple.700">
+                <Text color="purple.200" fontSize="sm">
+                  ✨ Os seguintes dados serão combinados: tags, nomes alternativos, maior capítulo lido, maior nota, sinopse mais completa.
+                </Text>
+              </Box>
+            </VStack>
+          </Dialog.Body>
+
+          <Dialog.Footer borderTopWidth="1px" borderColor="gray.700">
+            <HStack justify="flex-end" w="100%" gap={3}>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsMergeDialogOpen(false);
+                  setSelectedDuplicateId(null);
+                }}
+                color="gray.300"
+                borderColor="gray.600"
+                _hover={{ bg: 'gray.700', color: 'white' }}
+                disabled={isMerging}
+              >
+                Cancelar
+              </Button>
+              <Button
+                colorScheme="purple"
+                onClick={handleMerge}
+                bg="purple.600"
+                _hover={{ bg: 'purple.700' }}
+                loading={isMerging}
+                loadingText="Mesclando..."
+              >
+                Confirmar Mesclagem
+              </Button>
+            </HStack>
+          </Dialog.Footer>
+        </Dialog.Content>
+      </Dialog.Positioner>
+    </Dialog.Root>
   </Box>
   );
 }

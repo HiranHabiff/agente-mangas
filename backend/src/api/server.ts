@@ -92,10 +92,10 @@ app.get('/api/mangas', async (req: Request, res: Response, next: NextFunction) =
   }
 });
 
-// Get single manga by ID
+// Get single manga by ID (with tags and alternative names)
 app.get('/api/mangas/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const manga = await mangaService.getMangaById(req.params.id);
+    const manga = await mangaService.getCompleteMangaById(req.params.id);
     if (!manga) {
       throw new NotFoundError('Manga not found');
     }
@@ -233,6 +233,65 @@ app.delete('/api/reminders/:id', async (req: Request, res: Response, next: NextF
   try {
     await reminderService.deleteReminder(req.params.id);
     res.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ==================== DUPLICATES ROUTES ====================
+
+app.get('/api/duplicates', async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const duplicates = await mangaService.findDuplicates();
+    res.json({
+      total_groups: duplicates.length,
+      total_duplicates: duplicates.reduce((acc, d) => acc + d.group.length, 0),
+      groups: duplicates
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Merge mangas (keep target, delete sources)
+app.post('/api/duplicates/merge', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { targetId, sourceIds } = req.body;
+
+    if (!targetId || typeof targetId !== 'string') {
+      throw new ValidationError('targetId is required');
+    }
+
+    if (!sourceIds || !Array.isArray(sourceIds) || sourceIds.length === 0) {
+      throw new ValidationError('sourceIds must be a non-empty array');
+    }
+
+    const mergedManga = await mangaService.mergeMangas(targetId, sourceIds);
+    res.json({
+      success: true,
+      message: `Merged ${sourceIds.length} manga(s) into target`,
+      manga: mergedManga
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Delete multiple mangas
+app.post('/api/duplicates/delete-multiple', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { ids, permanent = true } = req.body;
+
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      throw new ValidationError('ids must be a non-empty array');
+    }
+
+    const deletedCount = await mangaService.deleteMultiple(ids, permanent);
+    res.json({
+      success: true,
+      message: `Deleted ${deletedCount} manga(s)`,
+      deletedCount
+    });
   } catch (error) {
     next(error);
   }

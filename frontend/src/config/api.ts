@@ -17,7 +17,10 @@ export const API_ENDPOINTS = {
   // Tags
   tags: '/api/tags',
   popularTags: '/api/tags/popular',
-  
+
+  // Duplicates
+  duplicates: '/api/duplicates',
+
   // Reminders
   reminders: '/api/reminders',
   reminderById: (id: string) => `/api/reminders/${id}`,
