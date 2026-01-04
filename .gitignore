@@ -7,6 +7,9 @@ frontend/node_modules/
 scraper-kenmei/data-*/
 scraper-kenmei/data-*/*
 
+# .claude
+.claude/settings.local.json
+
 # Environment variables
 .env
 .env.local
