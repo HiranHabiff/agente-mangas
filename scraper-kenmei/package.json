@@ -1,0 +1,22 @@
+{
+  "name": "scraper-kenmei",
+  "version": "1.0.0",
+  "description": "Scraper para coletar dados JSON da API Kenmei",
+  "type": "module",
+  "scripts": {
+    "fetch-pages": "npx tsx src/fetch-pages.ts",
+    "fetch-items": "npx tsx src/fetch-items.ts",
+    "import": "node import-kenmei.js",
+    "import:dry": "node import-kenmei.js --dry-run",
+    "import:test": "node import-kenmei.js --dry-run --limit=5 --skip-images"
+  },
+  "dependencies": {
+    "axios": "^1.7.9",
+    "pg": "^8.13.1"
+  },
+  "devDependencies": {
+    "@types/node": "^25.0.3",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
