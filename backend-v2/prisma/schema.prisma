@@ -1,0 +1,364 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model characters {
+  id               String             @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name             String             @unique @db.VarChar(100)
+  color            String?            @db.VarChar(7)
+  description      String?
+  created_at       DateTime?          @default(now()) @db.Timestamptz(6)
+  name_english     String?            @db.VarChar(100)
+  manga_characters manga_characters[]
+
+  @@index([name], map: "idx_characters_name")
+  @@index([name_english], map: "idx_characters_name_english")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model creators {
+  id             String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name           String           @db.VarChar(200)
+  role           String?          @db.VarChar(50)
+  created_at     DateTime?        @default(now()) @db.Timestamptz(6)
+  manga_creators manga_creators[]
+
+  @@unique([name, role], map: "unique_creator")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model demographic {
+  id           String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name         String    @unique @db.VarChar(100)
+  color        String?   @db.VarChar(7)
+  description  String?
+  created_at   DateTime? @default(now()) @db.Timestamptz(6)
+  name_english String?   @db.VarChar(100)
+  mangas       mangas[]
+
+  @@index([name], map: "idx_demographic_name")
+  @@index([name_english], map: "idx_demographic_name_english")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model genres {
+  id           String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name         String         @unique @db.VarChar(100)
+  description  String?
+  created_at   DateTime?      @default(now()) @db.Timestamptz(6)
+  color        String?        @db.VarChar(100)
+  name_english String?        @db.VarChar(100)
+  manga_genres manga_genres[]
+
+  @@index([name], map: "idx_genres_name")
+  @@index([name_english], map: "idx_genres_name_english")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model manga_characters {
+  manga_id     String     @db.Uuid
+  character_id String     @db.Uuid
+  characters   characters @relation(fields: [character_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  mangas       mangas     @relation(fields: [manga_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([manga_id, character_id])
+  @@index([character_id], map: "idx_manga_characters_character_id")
+  @@index([manga_id], map: "idx_manga_characters_manga_id")
+}
+
+model manga_creators {
+  manga_id   String    @db.Uuid
+  creator_id String    @db.Uuid
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  creators   creators  @relation(fields: [creator_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  mangas     mangas    @relation(fields: [manga_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([manga_id, creator_id])
+}
+
+model manga_genres {
+  manga_id   String    @db.Uuid
+  genre_id   String    @db.Uuid
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  genres     genres    @relation(fields: [genre_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  mangas     mangas    @relation(fields: [manga_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([manga_id, genre_id])
+  @@index([manga_id], map: "idx_manga_genres_manga_id")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model manga_links {
+  id              String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  manga_id        String    @db.Uuid
+  site_id         String?   @db.Uuid
+  url             String
+  label           String?   @db.VarChar(100)
+  is_primary      Boolean?  @default(false)
+  is_active       Boolean?  @default(true)
+  last_checked_at DateTime? @db.Timestamptz(6)
+  created_at      DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime? @default(now()) @db.Timestamptz(6)
+  mangas          mangas    @relation(fields: [manga_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  sites           sites?    @relation(fields: [site_id], references: [id], onUpdate: NoAction)
+
+  @@unique([manga_id, url], map: "manga_links_manga_url_unique")
+  @@index([manga_id], map: "idx_manga_links_manga_id")
+  @@index([site_id], map: "idx_manga_links_site_id")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model manga_names {
+  id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  manga_id    String    @db.Uuid
+  name        String    @db.VarChar(750)
+  language    String?   @default("pt-BR") @db.VarChar(10)
+  is_official Boolean?  @default(false)
+  created_at  DateTime? @default(now()) @db.Timestamptz(6)
+  mangas      mangas    @relation(fields: [manga_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([manga_id, name], map: "unique_manga_name")
+  @@index([name(ops: raw("gin_trgm_ops"))], map: "idx_manga_names_name_trgm", type: Gin)
+}
+
+model manga_publishers {
+  manga_id         String     @db.Uuid
+  publisher_id     String     @db.Uuid
+  publication_date DateTime?  @db.Date
+  created_at       DateTime?  @default(now()) @db.Timestamptz(6)
+  mangas           mangas     @relation(fields: [manga_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  publishers       publishers @relation(fields: [publisher_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([manga_id, publisher_id])
+  @@index([manga_id], map: "idx_manga_publishers_manga_id")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model manga_tags {
+  manga_id   String    @db.Uuid
+  tag_id     String    @db.Uuid
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  mangas     mangas    @relation(fields: [manga_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  tags       tags      @relation(fields: [tag_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([manga_id, tag_id])
+}
+
+model manga_themes {
+  manga_id   String    @db.Uuid
+  theme_id   String    @db.Uuid
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  mangas     mangas    @relation(fields: [manga_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  themes     themes    @relation(fields: [theme_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([manga_id, theme_id])
+  @@index([manga_id], map: "idx_manga_themes_manga_id")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model manga_warnings {
+  manga_id   String   @db.Uuid
+  warning_id String   @db.Uuid
+  mangas     mangas   @relation(fields: [manga_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  warnings   warnings @relation(fields: [warning_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([manga_id, warning_id])
+  @@index([manga_id], map: "idx_manga_warnings_manga_id")
+  @@index([warning_id], map: "idx_manga_warnings_warning_id")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model mangas {
+  id                String                 @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  primary_title     String                 @db.VarChar(750)
+  url               String?
+  image_filename    String?                @db.VarChar(500)
+  image_url         String?
+  last_chapter_read Int?                   @default(0)
+  total_chapters    Int?
+  rating            Decimal?               @db.Decimal(3, 2)
+  status            String?                @default("reading") @db.VarChar(50)
+  synopsis          String?
+  user_notes        String?
+  embedding         Unsupported("vector")?
+  legacy_id         Int?                   @unique
+  legacy_parent_id  Int?
+  created_at        DateTime?              @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime?              @default(now()) @db.Timestamptz(6)
+  last_read_at      DateTime?              @db.Timestamptz(6)
+  deleted_at        DateTime?              @db.Timestamptz(6)
+  status_id         String?                @db.Uuid
+  type_id           String?                @db.Uuid
+  rating_id         String?                @db.Uuid
+  demographic_id    String?                @db.Uuid
+  manga_characters  manga_characters[]
+  manga_creators    manga_creators[]
+  manga_genres      manga_genres[]
+  manga_links       manga_links[]
+  manga_names       manga_names[]
+  manga_publishers  manga_publishers[]
+  manga_tags        manga_tags[]
+  manga_themes      manga_themes[]
+  manga_warnings    manga_warnings[]
+  demographic       demographic?           @relation(fields: [demographic_id], references: [id], onUpdate: NoAction)
+  ratingRef         ratings?               @relation(fields: [rating_id], references: [id], onUpdate: NoAction)
+  statusRef         status?                @relation(fields: [status_id], references: [id], onUpdate: NoAction)
+  typeRef           types?                 @relation(fields: [type_id], references: [id], onUpdate: NoAction)
+  reading_sessions  reading_sessions[]
+  reminders         reminders[]
+
+  @@index([legacy_id], map: "idx_mangas_legacy_id")
+  @@index([primary_title(ops: raw("gin_trgm_ops"))], map: "idx_mangas_primary_title_trgm", type: Gin)
+  @@index([synopsis(ops: raw("gin_trgm_ops"))], map: "idx_mangas_synopsis_trgm", type: Gin)
+  @@index([updated_at(sort: Desc)], map: "idx_mangas_updated_at")
+}
+
+model publishers {
+  id               String             @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name             String             @unique @db.VarChar(200)
+  country          String?            @db.VarChar(100)
+  website          String?
+  created_at       DateTime?          @default(now()) @db.Timestamptz(6)
+  manga_publishers manga_publishers[]
+
+  @@index([name], map: "idx_publishers_name")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model ratings {
+  id           String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name         String    @unique @db.VarChar(100)
+  color        String?   @db.VarChar(7)
+  description  String?
+  created_at   DateTime? @default(now()) @db.Timestamptz(6)
+  name_english String?   @db.VarChar(100)
+  mangas       mangas[]
+
+  @@index([name], map: "idx_ratings_name")
+  @@index([name_english], map: "idx_ratings_name_english")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model reading_sessions {
+  id               String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  manga_id         String    @db.Uuid
+  chapter_number   Int
+  started_at       DateTime? @default(now()) @db.Timestamptz(6)
+  duration_minutes Int?
+  notes            String?
+  created_at       DateTime? @default(now()) @db.Timestamptz(6)
+  mangas           mangas    @relation(fields: [manga_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model reminders {
+  id                String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  manga_id          String    @db.Uuid
+  reminder_type     String?   @default("update") @db.VarChar(50)
+  message           String?
+  scheduled_for     DateTime? @db.Timestamptz(6)
+  is_active         Boolean?  @default(true)
+  is_recurring      Boolean?  @default(false)
+  recurrence_days   Int?
+  last_triggered_at DateTime? @db.Timestamptz(6)
+  created_at        DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime? @default(now()) @db.Timestamptz(6)
+  mangas            mangas    @relation(fields: [manga_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model sites {
+  id          String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name        String        @unique @db.VarChar(100)
+  url         String        @db.VarChar(255)
+  image       String        @db.VarChar(255)
+  language    String        @db.VarChar(50)
+  active      Boolean?      @default(true)
+  description String?
+  created_at  DateTime?     @default(now()) @db.Timestamptz(6)
+  manga_links manga_links[]
+
+  @@index([active], map: "idx_sites_active")
+  @@index([language], map: "idx_sites_language")
+  @@index([name], map: "idx_sites_name")
+  @@index([url], map: "idx_sites_url")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model status {
+  id           String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name         String    @unique @db.VarChar(100)
+  color        String?   @db.VarChar(7)
+  description  String?
+  created_at   DateTime? @default(now()) @db.Timestamptz(6)
+  name_english String?   @db.VarChar(100)
+  mangas       mangas[]
+
+  @@index([name], map: "idx_status_name")
+  @@index([name_english], map: "idx_status_name_english")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model tags {
+  id           String       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name         String       @unique @db.VarChar(100)
+  category     String?      @db.VarChar(50)
+  color        String?      @db.VarChar(7)
+  created_at   DateTime?    @default(now()) @db.Timestamptz(6)
+  name_english String?      @db.VarChar(100)
+  manga_tags   manga_tags[]
+
+  @@index([category], map: "idx_tags_category")
+  @@index([name_english], map: "idx_tags_name_english")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model themes {
+  id           String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name         String         @unique @db.VarChar(100)
+  description  String?
+  created_at   DateTime?      @default(now()) @db.Timestamptz(6)
+  color        String?        @db.VarChar(100)
+  name_english String?        @db.VarChar(100)
+  manga_themes manga_themes[]
+
+  @@index([name], map: "idx_themes_name")
+  @@index([name_english], map: "idx_themes_name_english")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model types {
+  id           String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name         String    @unique @db.VarChar(100)
+  color        String?   @db.VarChar(7)
+  description  String?
+  created_at   DateTime? @default(now()) @db.Timestamptz(6)
+  name_english String?   @db.VarChar(100)
+  mangas       mangas[]
+
+  @@index([name], map: "idx_types_name")
+  @@index([name_english], map: "idx_types_name_english")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model warnings {
+  id             String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name           String           @unique @db.VarChar(100)
+  color          String?          @db.VarChar(7)
+  description    String?
+  created_at     DateTime?        @default(now()) @db.Timestamptz(6)
+  name_english   String?          @db.VarChar(100)
+  manga_warnings manga_warnings[]
+
+  @@index([name], map: "idx_warnings_name")
+  @@index([name_english], map: "idx_warnings_name_english")
+}
