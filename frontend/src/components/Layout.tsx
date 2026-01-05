@@ -33,6 +33,15 @@ export function Layout() {
               </Button>
               <Button
                 as={Link}
+                to="/duplicates"
+                variant={location.pathname === '/duplicates' ? 'solid' : 'ghost'}
+                colorScheme="orange"
+                color={location.pathname === '/duplicates' ? 'white' : 'gray.300'}
+              >
+                Duplicatas
+              </Button>
+              <Button
+                as={Link}
                 to="/chat"
                 variant={location.pathname === '/chat' ? 'solid' : 'ghost'}
                 colorScheme="blue"

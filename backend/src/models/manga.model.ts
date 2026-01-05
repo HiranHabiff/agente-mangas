@@ -129,6 +129,7 @@ export interface UpdateMangaInput {
   user_notes?: string;
   status?: MangaStatus;
   rating?: number;
+  last_chapter_read?: number;
   total_chapters?: number;
   add_tags?: string[];
   remove_tags?: string[];

@@ -5,6 +5,7 @@ import { DashboardPage } from './pages/DashboardPage';
 import { MangasPage } from './pages/MangasPage';
 import { MangaDetailPage } from './pages/MangaDetailPage';
 import { ChatPage } from './pages/ChatPage';
+import { DuplicatesPage } from './pages/DuplicatesPage';
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
             <Route index element={<DashboardPage />} />
             <Route path="mangas" element={<MangasPage />} />
             <Route path="mangas/:id" element={<MangaDetailPage />} />
+            <Route path="duplicates" element={<DuplicatesPage />} />
             <Route path="chat" element={<ChatPage />} />
           </Route>
         </Routes>

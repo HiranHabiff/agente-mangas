@@ -1,5 +1,5 @@
 // API configuration
-export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3010';
 
 export const API_ENDPOINTS = {
   // Mangas
@@ -17,7 +17,10 @@ export const API_ENDPOINTS = {
   // Tags
   tags: '/api/tags',
   popularTags: '/api/tags/popular',
-  
+
+  // Duplicates
+  duplicates: '/api/duplicates',
+
   // Reminders
   reminders: '/api/reminders',
   reminderById: (id: string) => `/api/reminders/${id}`,

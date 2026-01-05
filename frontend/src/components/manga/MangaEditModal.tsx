@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -14,6 +14,10 @@ import {
 } from '@chakra-ui/react';
 import { FiExternalLink, FiX } from 'react-icons/fi';
 import { getImageUrl } from '../../config/api';
+import { mangaApi } from '../../services/api';
+import { MultiSelect, type MultiSelectOption } from '../ui/MultiSelect';
+import { ChipInput } from '../ui/ChipInput';
+import { StarRating } from '../ui/StarRating';
 import type { Manga } from '../../types/manga';
 
 interface MangaEditModalProps {
@@ -22,6 +26,20 @@ interface MangaEditModalProps {
   onClose: () => void;
   onSave: (updates: any) => void;
 }
+
+const getTagColor = (tag: string): string => {
+  const t = tag.toLowerCase();
+  if (['ação', 'action', 'luta', 'artes marciais'].some(x => t.includes(x))) return 'red';
+  if (['romance', 'amor', 'shoujo'].some(x => t.includes(x))) return 'pink';
+  if (['comédia', 'comedy', 'humor'].some(x => t.includes(x))) return 'yellow';
+  if (['fantasia', 'fantasy', 'magia'].some(x => t.includes(x))) return 'purple';
+  if (['aventura', 'adventure'].some(x => t.includes(x))) return 'orange';
+  if (['drama'].some(x => t.includes(x))) return 'blue';
+  if (['horror', 'terror', 'suspense'].some(x => t.includes(x))) return 'gray';
+  if (['sci-fi', 'ficção científica', 'mecha'].some(x => t.includes(x))) return 'cyan';
+  if (['slice of life', 'cotidiano'].some(x => t.includes(x))) return 'green';
+  return 'purple';
+};
 
 export function MangaEditModal({ manga, open, onClose, onSave }: MangaEditModalProps) {
   const navigate = useNavigate();
@@ -34,9 +52,52 @@ export function MangaEditModal({ manga, open, onClose, onSave }: MangaEditModalP
     url: manga.url || '',
     synopsis: manga.synopsis || '',
     user_notes: manga.user_notes || '',
-    alternative_names: manga.alternative_names?.join('\n') || '',
-    tags: (manga as any).tags?.join(', ') || '',
   });
+
+  // Track tags separately for proper add/remove handling
+  const [currentTags, setCurrentTags] = useState<string[]>((manga as any).tags || []);
+  const [originalTags, setOriginalTags] = useState<string[]>((manga as any).tags || []);
+  const [availableTags, setAvailableTags] = useState<MultiSelectOption[]>([]);
+
+  // Track alternative names separately
+  const [currentNames, setCurrentNames] = useState<string[]>(manga.alternative_names || []);
+  const [originalNames, setOriginalNames] = useState<string[]>(manga.alternative_names || []);
+
+  // Load available tags
+  useEffect(() => {
+    loadTags();
+  }, []);
+
+  const loadTags = async () => {
+    try {
+      const tags = await mangaApi.getTags();
+      setAvailableTags(tags.map((t: any) => ({ value: t.name, label: t.name })));
+    } catch (err) {
+      console.error('Erro ao carregar tags:', err);
+    }
+  };
+
+  // Reset form data when manga changes or modal opens
+  useEffect(() => {
+    if (open) {
+      setFormData({
+        primary_title: manga.primary_title || '',
+        status: manga.status || 'reading',
+        rating: manga.rating || 0,
+        last_chapter_read: manga.last_chapter_read || 0,
+        total_chapters: manga.total_chapters || 0,
+        url: manga.url || '',
+        synopsis: manga.synopsis || '',
+        user_notes: manga.user_notes || '',
+      });
+      const tags = (manga as any).tags || [];
+      setCurrentTags([...tags]);
+      setOriginalTags([...tags]);
+      const names = manga.alternative_names || [];
+      setCurrentNames([...names]);
+      setOriginalNames([...names]);
+    }
+  }, [manga, open]);
 
   const goToDetails = () => {
     onClose();
@@ -44,27 +105,48 @@ export function MangaEditModal({ manga, open, onClose, onSave }: MangaEditModalP
   };
 
   const handleSave = () => {
-    const updates = {
-      ...formData,
+    // Calculate which tags were added and removed
+    const tagsToAdd = currentTags.filter(tag => !originalTags.includes(tag));
+    const tagsToRemove = originalTags.filter(tag => !currentTags.includes(tag));
+
+    // Calculate which names were added and removed
+    const namesToAdd = currentNames.filter(name => !originalNames.includes(name));
+    const namesToRemove = originalNames.filter(name => !currentNames.includes(name));
+
+    const updates: any = {
+      primary_title: formData.primary_title,
+      status: formData.status,
       rating: Number(formData.rating),
       last_chapter_read: Number(formData.last_chapter_read),
       total_chapters: Number(formData.total_chapters),
-      alternative_names: formData.alternative_names
-        .split('\n')
-        .filter(name => name.trim())
-        .map(name => name.trim()),
-      add_tags: formData.tags
-        .split(',')
-        .filter(tag => tag.trim())
-        .map(tag => tag.trim()),
+      url: formData.url,
+      synopsis: formData.synopsis,
+      user_notes: formData.user_notes,
     };
+
+    // Add names changes if any
+    if (namesToAdd.length > 0) {
+      updates.add_names = namesToAdd;
+    }
+    if (namesToRemove.length > 0) {
+      updates.remove_names = namesToRemove;
+    }
+
+    // Add tags changes if any
+    if (tagsToAdd.length > 0) {
+      updates.add_tags = tagsToAdd;
+    }
+    if (tagsToRemove.length > 0) {
+      updates.remove_tags = tagsToRemove;
+    }
+
     onSave(updates);
   };
 
   const imageUrl = manga.image_filename ? getImageUrl(manga.image_filename) : null;
 
   return (
-    <Dialog.Root open={open} onOpenChange={(e) => !e.open && onClose()} size="lg" scrollBehavior="outside">
+    <Dialog.Root open={open} onOpenChange={(e) => !e.open && onClose()} size="xl" scrollBehavior="outside">
       <Dialog.Backdrop bg="blackAlpha.800" />
       <Dialog.Positioner>
         <Dialog.Content bg="gray.800" borderColor="gray.700" borderWidth="1px">
@@ -102,10 +184,10 @@ export function MangaEditModal({ manga, open, onClose, onSave }: MangaEditModalP
           </Dialog.Header>
 
           {/* Body */}
-          <Dialog.Body p={6}>
+          <Dialog.Body p={6} overflow="visible">
             <HStack align="start" gap={6}>
-            {/* Image Preview */}
-            <Box flexShrink={0} w="200px">
+            {/* Image Preview + Dates */}
+            <VStack flexShrink={0} w="200px" gap={3}>
               {imageUrl ? (
                 <Image
                   src={imageUrl}
@@ -128,7 +210,29 @@ export function MangaEditModal({ manga, open, onClose, onSave }: MangaEditModalP
                   <Text color="gray.500">Sem capa</Text>
                 </Box>
               )}
-            </Box>
+
+              {/* Date Info */}
+              <VStack align="stretch" gap={1} w="100%">
+                <Box bg="gray.700" p={2} borderRadius="md">
+                  <Text fontSize="xs" color="gray.400">Criado em</Text>
+                  <Text fontSize="sm" color="white">
+                    {manga.created_at ? new Date(manga.created_at).toLocaleDateString('pt-BR') : '-'}
+                  </Text>
+                </Box>
+                <Box bg="gray.700" p={2} borderRadius="md">
+                  <Text fontSize="xs" color="gray.400">Atualizado em</Text>
+                  <Text fontSize="sm" color="white">
+                    {manga.updated_at ? new Date(manga.updated_at).toLocaleDateString('pt-BR') : '-'}
+                  </Text>
+                </Box>
+                <Box bg="gray.700" p={2} borderRadius="md">
+                  <Text fontSize="xs" color="gray.400">Última leitura</Text>
+                  <Text fontSize="sm" color={manga.last_read_at ? 'green.300' : 'gray.500'}>
+                    {manga.last_read_at ? new Date(manga.last_read_at).toLocaleDateString('pt-BR') : 'Nunca lido'}
+                  </Text>
+                </Box>
+              </VStack>
+            </VStack>
 
             {/* Form Fields */}
             <VStack flex={1} align="stretch" gap={4}>
@@ -171,22 +275,26 @@ export function MangaEditModal({ manga, open, onClose, onSave }: MangaEditModalP
                   </Box>
                 </Box>
 
-                <Box w="120px">
-                  <Text fontSize="sm" fontWeight="semibold" mb={1} color="white">
-                    Rating (0-10)
-                  </Text>
-                  <Input
-                    type="number"
-                    min="0"
-                    max="10"
-                    step="0.5"
-                    value={formData.rating}
-                    onChange={(e) => setFormData({ ...formData, rating: Number(e.target.value) })}
-                    bg="gray.700"
-                    borderColor="gray.600"
-                  />
-                </Box>
               </HStack>
+
+              {/* Rating */}
+              <Box>
+                <Text fontSize="sm" fontWeight="semibold" mb={1} color="white">
+                  Nota
+                </Text>
+                <HStack gap={3} align="center">
+                  <StarRating
+                    value={Number(formData.rating) || 0}
+                    onChange={(value) => setFormData({ ...formData, rating: value })}
+                    max={10}
+                    size="20px"
+                    allowHalf
+                  />
+                  <Text color="gray.400" fontSize="sm" fontWeight="medium">
+                    {Number(formData.rating || 0).toFixed(1)}
+                  </Text>
+                </HStack>
+              </Box>
 
               {/* Chapters */}
               <HStack gap={4}>
@@ -233,34 +341,38 @@ export function MangaEditModal({ manga, open, onClose, onSave }: MangaEditModalP
                 />
               </Box>
 
-              {/* Tags */}
-              <Box>
+              {/* Tags with MultiSelect */}
+              <Box overflow="visible">
                 <Text fontSize="sm" fontWeight="semibold" mb={1} color="white">
-                  Tags (separadas por vírgula)
+                  Tags
                 </Text>
-                <Input
-                  value={formData.tags}
-                  onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
-                  bg="gray.700"
-                  borderColor="gray.600"
-                  placeholder="Ação, Aventura, Shounen"
-                  color="white"
+                <MultiSelect
+                  placeholder="Buscar ou criar tags..."
+                  selected={currentTags}
+                  options={availableTags}
+                  onChange={setCurrentTags}
+                  getColor={getTagColor}
+                  allowCreate={true}
                 />
+                <Text fontSize="xs" color="gray.500" mt={1}>
+                  Digite para buscar ou criar novas tags
+                </Text>
               </Box>
 
               {/* Alternative Names */}
               <Box>
                 <Text fontSize="sm" fontWeight="semibold" mb={1} color="white">
-                  Nomes Alternativos (um por linha)
+                  Nomes Alternativos
                 </Text>
-                <Textarea
-                  value={formData.alternative_names}
-                  onChange={(e) => setFormData({ ...formData, alternative_names: e.target.value })}
-                  bg="gray.700"
-                  borderColor="gray.600"
-                  rows={3}
-                  placeholder="Nome alternativo 1&#10;Nome alternativo 2"
+                <ChipInput
+                  placeholder="Digite um nome e pressione Enter..."
+                  values={currentNames}
+                  onChange={setCurrentNames}
+                  colorScheme="cyan"
                 />
+                <Text fontSize="xs" color="gray.500" mt={1}>
+                  Pressione Enter para adicionar
+                </Text>
               </Box>
 
               {/* Synopsis */}

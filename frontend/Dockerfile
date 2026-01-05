@@ -15,8 +15,8 @@ FROM base AS development
 COPY package*.json ./
 RUN npm install
 COPY . .
-EXPOSE 5173
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+EXPOSE 3012
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "3012"]
 
 # Stage 4: Builder (para produção)
 FROM base AS builder

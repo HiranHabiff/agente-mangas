@@ -40,6 +40,7 @@ const statusOptions = [
 ];
 
 const sortByItems = [
+  { value: 'last_read_at', label: 'Última Leitura' },
   { value: 'updated_at', label: 'Atualização' },
   { value: 'created_at', label: 'Criação' },
   { value: 'primary_title', label: 'Título' },
@@ -247,7 +248,7 @@ export function AdvancedFilterPanel({ onFilterChange }: AdvancedFilterPanelProps
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [minRating, setMinRating] = useState<string>('');
   const [onlyWithCovers, setOnlyWithCovers] = useState(false);
-  const [sortBy, setSortBy] = useState('updated_at');
+  const [sortBy, setSortBy] = useState('last_read_at');
   const [sortOrder, setSortOrder] = useState('desc');
 
   useEffect(() => {
@@ -281,7 +282,7 @@ export function AdvancedFilterPanel({ onFilterChange }: AdvancedFilterPanelProps
     setSelectedTags([]);
     setMinRating('');
     setOnlyWithCovers(false);
-    setSortBy('updated_at');
+    setSortBy('last_read_at');
     setSortOrder('desc');
   };
 

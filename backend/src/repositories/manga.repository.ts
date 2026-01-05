@@ -167,8 +167,8 @@ export class MangaRepository {
     const sortOrder = input.sort_order || 'desc';
     
     // Validate sort column to prevent SQL injection
-    const allowedSortColumns = ['updated_at', 'created_at', 'primary_title', 'rating', 'last_chapter_read'];
-    const sortColumn = allowedSortColumns.includes(sortBy) ? sortBy : 'updated_at';
+    const allowedSortColumns = ['updated_at', 'created_at', 'primary_title', 'rating', 'last_chapter_read', 'last_read_at'];
+    const sortColumn = allowedSortColumns.includes(sortBy) ? sortBy : 'last_read_at';
     const orderDirection = sortOrder.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
 
     // Count total results
@@ -244,6 +244,12 @@ export class MangaRepository {
       if (input.total_chapters !== undefined) {
         updates.push(`total_chapters = $${paramIndex++}`);
         values.push(input.total_chapters);
+      }
+      if (input.last_chapter_read !== undefined) {
+        updates.push(`last_chapter_read = $${paramIndex++}`);
+        values.push(input.last_chapter_read);
+        // Also update last_read_at when chapter is updated
+        updates.push(`last_read_at = CURRENT_TIMESTAMP`);
       }
 
       if (updates.length > 0) {
@@ -343,6 +349,14 @@ export class MangaRepository {
     );
   }
 
+  // Touch updated_at timestamp
+  async touchUpdatedAt(id: string): Promise<void> {
+    await query(
+      'UPDATE mangas SET updated_at = CURRENT_TIMESTAMP WHERE id = $1',
+      [id]
+    );
+  }
+
   // Update embedding
   async updateEmbedding(id: string, embedding: number[]): Promise<void> {
     await query(
@@ -391,6 +405,129 @@ export class MangaRepository {
 
     const result = await query(queryText, [limit]);
     return result.rows;
+  }
+
+  // Find potential duplicate mangas based on title similarity
+  async findDuplicates(): Promise<{ group: MangaComplete[], similarity: string }[]> {
+    logger.info('Starting duplicate search...');
+
+    // Query to find mangas that share the same normalized name
+    // We fetch ALL duplicate groups first, then prioritize and limit in JS
+    const queryText = `
+      WITH all_names AS (
+        -- Get primary titles
+        SELECT m.id as manga_id, LOWER(TRIM(m.primary_title)) as name
+        FROM mangas m
+        WHERE m.deleted_at IS NULL
+
+        UNION ALL
+
+        -- Get alternative names
+        SELECT mn.manga_id, LOWER(TRIM(mn.name)) as name
+        FROM manga_names mn
+        JOIN mangas m ON mn.manga_id = m.id
+        WHERE m.deleted_at IS NULL
+      ),
+      -- Find names that appear with multiple manga_ids
+      duplicate_names AS (
+        SELECT name, ARRAY_AGG(DISTINCT manga_id) as manga_ids
+        FROM all_names
+        GROUP BY name
+        HAVING COUNT(DISTINCT manga_id) > 1
+      )
+      SELECT name as matching_name, manga_ids
+      FROM duplicate_names
+      ORDER BY name
+    `;
+
+    const result = await query(queryText);
+    logger.info(`Found ${result.rows.length} duplicate name groups`);
+
+    if (result.rows.length === 0) {
+      return [];
+    }
+
+    // Collect all unique manga IDs
+    const allMangaIds = new Set<string>();
+    for (const row of result.rows) {
+      for (const id of row.manga_ids) {
+        allMangaIds.add(id);
+      }
+    }
+
+    // Fetch all manga data in a single query
+    const mangasQuery = `
+      SELECT * FROM v_manga_complete
+      WHERE id = ANY($1)
+    `;
+    const mangasResult = await query(mangasQuery, [Array.from(allMangaIds)]);
+
+    // Create a map for quick lookup
+    const mangaMap = new Map<string, MangaComplete>();
+    for (const manga of mangasResult.rows) {
+      mangaMap.set(manga.id, manga as MangaComplete);
+    }
+
+    // Build duplicate groups
+    const duplicateGroups: { group: MangaComplete[], similarity: string }[] = [];
+
+    for (const row of result.rows) {
+      const mangas = row.manga_ids
+        .map((id: string) => mangaMap.get(id))
+        .filter((m: MangaComplete | undefined): m is MangaComplete => m !== undefined);
+
+      if (mangas.length > 1) {
+        // Sort by: chapters read (desc), rating (desc), has image (desc), created_at (asc)
+        const sortedMangas = mangas.sort((a, b) => {
+          // First priority: chapters read (higher first)
+          const chaptersA = a.last_chapter_read || 0;
+          const chaptersB = b.last_chapter_read || 0;
+          if (chaptersB !== chaptersA) return chaptersB - chaptersA;
+
+          // Second priority: rating (higher first)
+          const ratingA = a.rating ? Number(a.rating) : 0;
+          const ratingB = b.rating ? Number(b.rating) : 0;
+          if (ratingB !== ratingA) return ratingB - ratingA;
+
+          // Third priority: has image (with image first)
+          const hasImageA = a.image_filename ? 1 : 0;
+          const hasImageB = b.image_filename ? 1 : 0;
+          if (hasImageB !== hasImageA) return hasImageB - hasImageA;
+
+          // Fourth priority: older creation date first (keep the original)
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        });
+
+        duplicateGroups.push({
+          group: sortedMangas,
+          similarity: row.matching_name
+        });
+      }
+    }
+
+    // Sort groups: prioritize groups that have mangas with chapters read
+    duplicateGroups.sort((groupA, groupB) => {
+      // Get max chapters read in each group
+      const maxChaptersA = Math.max(...groupA.group.map(m => m.last_chapter_read || 0));
+      const maxChaptersB = Math.max(...groupB.group.map(m => m.last_chapter_read || 0));
+
+      // Groups with chapters read come first
+      if (maxChaptersB !== maxChaptersA) return maxChaptersB - maxChaptersA;
+
+      // Then by max rating in group
+      const maxRatingA = Math.max(...groupA.group.map(m => m.rating ? Number(m.rating) : 0));
+      const maxRatingB = Math.max(...groupB.group.map(m => m.rating ? Number(m.rating) : 0));
+      if (maxRatingB !== maxRatingA) return maxRatingB - maxRatingA;
+
+      // Then alphabetically by similarity name
+      return groupA.similarity.localeCompare(groupB.similarity);
+    });
+
+    // Limit to 50 groups after sorting by priority
+    const limitedGroups = duplicateGroups.slice(0, 50);
+
+    logger.info(`Returning ${limitedGroups.length} duplicate groups (total: ${duplicateGroups.length})`);
+    return limitedGroups;
   }
 
   // ============================================

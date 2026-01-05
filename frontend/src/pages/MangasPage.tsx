@@ -4,7 +4,10 @@ import { AdvancedFilterPanel } from '../components/search/AdvancedFilterPanel';
 import { MangaList } from '../components/manga/MangaList';
 
 export function MangasPage() {
-  const [filters, setFilters] = useState({});
+  const [filters, setFilters] = useState({
+    sort_by: 'last_read_at',
+    sort_order: 'desc',
+  });
 
   return (
     <Box w="100%" minH="100vh" bg="gray.900" p={{ base: 4, md: 6 }}>

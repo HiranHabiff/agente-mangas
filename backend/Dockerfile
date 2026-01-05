@@ -19,10 +19,11 @@ RUN npm ci --only=production && \
 
 # Stage 3: Development
 FROM base AS development
+ENV PORT=3010
 COPY package*.json ./
 RUN npm install
 COPY . .
-EXPOSE 3000
+EXPOSE 3010
 CMD ["npm", "run", "dev"]
 
 # Stage 4: Builder (para produção)
@@ -35,10 +36,11 @@ RUN npm run build
 # Stage 5: Production
 FROM base AS production
 ENV NODE_ENV=production
+ENV PORT=3010
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY package*.json ./
-EXPOSE 3000
+EXPOSE 3010
 CMD ["node", "dist/api/server.js"]
 
 # Default: development
