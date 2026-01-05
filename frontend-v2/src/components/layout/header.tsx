@@ -2,8 +2,9 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Book, LayoutDashboard, Settings, Copy, ChevronDown, Tags, Palette, Globe, AlertTriangle, Users, Star, Layers } from 'lucide-react';
+import { Book, LayoutDashboard, Settings, Copy, ChevronDown, Tags, Palette, Globe, AlertTriangle, Users, Star, Layers, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,6 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
+import { AddMangaModal } from '@/components/manga/add-manga-modal';
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
@@ -105,6 +107,17 @@ export function Header() {
             </DropdownMenuContent>
           </DropdownMenu>
         </nav>
+
+        <div className="ml-auto">
+          <AddMangaModal
+            trigger={
+              <Button size="sm" className="gap-2">
+                <Plus className="h-4 w-4" />
+                Add Manga
+              </Button>
+            }
+          />
+        </div>
       </div>
     </header>
   );

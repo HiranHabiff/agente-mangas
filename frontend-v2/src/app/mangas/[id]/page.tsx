@@ -130,13 +130,13 @@ export default function MangaDetailPage({ params }: PageProps) {
         onStatusChange={handleStatusChange}
         onDelete={handleDelete}
         isPending={isPending}
-      />
-
-      <MangaTabs
-        manga={manga}
-        onNotesChange={handleNotesChange}
-        readingHistory={readingHistoryContent}
-      />
+      >
+        <MangaTabs
+          manga={manga}
+          onNotesChange={handleNotesChange}
+          readingHistory={readingHistoryContent}
+        />
+      </MangaHero>
     </div>
   );
 }

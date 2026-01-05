@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import type { MangaDetail } from '@/types/manga';
+import type { ReactNode } from 'react';
 
 const statusOptions = [
   { value: 'reading', label: 'Reading', color: 'bg-blue-500' },
@@ -36,6 +37,7 @@ interface MangaHeroProps {
   onStatusChange: (status: string) => void;
   onDelete?: () => void;
   isPending?: boolean;
+  children?: ReactNode;
 }
 
 export function MangaHero({
@@ -44,6 +46,7 @@ export function MangaHero({
   onStatusChange,
   onDelete,
   isPending = false,
+  children,
 }: MangaHeroProps) {
   const currentStatus = statusOptions.find((s) => s.value === manga.status) || statusOptions[4];
 
@@ -117,13 +120,27 @@ export function MangaHero({
 
       {/* Hero Content */}
       <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] gap-6">
-        {/* Cover Image */}
-        <div className="relative aspect-[2/3] overflow-hidden rounded-lg bg-muted shadow-lg mx-auto md:mx-0 max-w-[280px] w-full">
-          <MangaImage
-            src={manga.imageUrl}
-            filename={manga.imageFilename}
-            alt={manga.primaryTitle}
-          />
+        {/* Cover Image + Progress */}
+        <div className="flex flex-col gap-4 mx-auto md:mx-0 max-w-[280px] w-full">
+          {/* Cover Image */}
+          <div className="relative aspect-[2/3] overflow-hidden rounded-lg bg-muted shadow-lg">
+            <MangaImage
+              src={manga.imageUrl}
+              filename={manga.imageFilename}
+              alt={manga.primaryTitle}
+            />
+          </div>
+
+          {/* Progress Widget - abaixo da imagem */}
+          <div className="bg-muted/30 rounded-lg p-4 border">
+            <MangaProgress
+              lastChapterRead={manga.lastChapterRead}
+              totalChapters={manga.totalChapters}
+              isPending={isPending}
+              onChapterChange={onChapterChange}
+              onMarkComplete={handleMarkComplete}
+            />
+          </div>
         </div>
 
         {/* Info */}
@@ -178,16 +195,8 @@ export function MangaHero({
             )}
           </div>
 
-          {/* Progress Widget */}
-          <div className="bg-muted/30 rounded-lg p-4 border">
-            <MangaProgress
-              lastChapterRead={manga.lastChapterRead}
-              totalChapters={manga.totalChapters}
-              isPending={isPending}
-              onChapterChange={onChapterChange}
-              onMarkComplete={handleMarkComplete}
-            />
-          </div>
+          {/* Tabs Content */}
+          {children}
         </div>
       </div>
     </div>
