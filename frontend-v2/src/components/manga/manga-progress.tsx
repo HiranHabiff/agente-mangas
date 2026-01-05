@@ -1,16 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { Minus, Plus, ChevronDown, Check } from 'lucide-react';
+import { Minus, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 
 interface MangaProgressProps {
@@ -50,15 +43,6 @@ export function MangaProgress({
     }
     setEditingChapter(false);
     setChapterInput('');
-  };
-
-  const handleQuickAdd = (amount: number) => {
-    const newChapter = Math.max(0, currentChapter + amount);
-    onChapterChange(newChapter);
-  };
-
-  const handleSetChapter = (chapter: number) => {
-    onChapterChange(chapter);
   };
 
   return (
@@ -105,7 +89,7 @@ export function MangaProgress({
             onChange={(e) => setChapterInput(e.target.value)}
             onBlur={handleChapterSubmit}
             onKeyDown={(e) => e.key === 'Enter' && handleChapterSubmit()}
-            className="w-24 h-10 text-center text-base font-medium"
+            className="w-40 h-10 text-center text-base font-medium"
             autoFocus
           />
         ) : (
@@ -114,7 +98,7 @@ export function MangaProgress({
               setChapterInput(String(currentChapter));
               setEditingChapter(true);
             }}
-            className="w-24 h-10 px-3 text-base font-medium border rounded-md hover:bg-muted transition-colors text-center"
+            className="w-40 h-10 px-3 text-base font-medium border rounded-md hover:bg-muted transition-colors text-center"
           >
             {currentChapter}
           </button>
@@ -129,40 +113,6 @@ export function MangaProgress({
         >
           <Plus className="h-5 w-5" />
         </Button>
-
-        {/* Quick Actions Dropdown */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="h-10 px-3" disabled={isPending}>
-              <span className="sr-only md:not-sr-only md:mr-1">Update</span>
-              <ChevronDown className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem onClick={() => handleQuickAdd(5)}>
-              Add +5 chapters
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleQuickAdd(10)}>
-              Add +10 chapters
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleQuickAdd(20)}>
-              Add +20 chapters
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            {totalChapters && currentChapter < totalChapters && (
-              <DropdownMenuItem onClick={() => handleSetChapter(totalChapters)}>
-                <Check className="h-4 w-4 mr-2" />
-                Catch up ({totalChapters})
-              </DropdownMenuItem>
-            )}
-            {onMarkComplete && (
-              <DropdownMenuItem onClick={onMarkComplete}>
-                <Check className="h-4 w-4 mr-2" />
-                Mark as completed
-              </DropdownMenuItem>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
     </div>
   );

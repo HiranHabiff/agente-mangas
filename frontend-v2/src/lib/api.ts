@@ -84,6 +84,33 @@ export async function getManga(id: string): Promise<MangaDetail> {
   return fetchApi<MangaDetail>(`/mangas/${id}`);
 }
 
+export interface CreateMangaData {
+  primaryTitle: string;
+  synopsis?: string;
+  imageUrl?: string;
+  url?: string;
+  rating?: number;
+  totalChapters?: number;
+  status?: string;
+  userNotes?: string;
+  statusId?: string;
+  typeId?: string;
+  ratingId?: string;
+  demographicId?: string;
+  genreIds?: string[];
+  themeIds?: string[];
+  tagIds?: string[];
+  alternativeNames?: string[];
+  links?: { url: string; siteId?: string; label?: string; isPrimary?: boolean }[];
+}
+
+export async function createManga(data: CreateMangaData): Promise<MangaDetail> {
+  return fetchApi<MangaDetail>('/mangas', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
 export async function updateManga(id: string, data: Partial<MangaDetail>): Promise<MangaDetail> {
   return fetchApi<MangaDetail>(`/mangas/${id}`, {
     method: 'PATCH',
