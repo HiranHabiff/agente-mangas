@@ -160,9 +160,17 @@ export class MangasService {
     type SortField = 'primary_title' | 'rating' | 'last_read_at' | 'updated_at' | 'created_at' | 'last_chapter_read';
     const validSortFields: SortField[] = ['primary_title', 'rating', 'last_read_at', 'updated_at', 'created_at', 'last_chapter_read'];
 
+    // Campos que podem ter NULL e precisam de tratamento especial
+    const nullableFields = ['last_read_at', 'rating', 'last_chapter_read'];
+
     let orderBy: Prisma.mangasOrderByWithRelationInput;
     if (validSortFields.includes(sortBy as SortField)) {
-      orderBy = { [sortBy]: sortOrder };
+      // Para campos nullable, coloca NULLs por último em DESC e primeiro em ASC
+      if (nullableFields.includes(sortBy)) {
+        orderBy = { [sortBy]: { sort: sortOrder, nulls: sortOrder === 'desc' ? 'last' : 'first' } };
+      } else {
+        orderBy = { [sortBy]: sortOrder };
+      }
     } else {
       orderBy = { updated_at: 'desc' };
     }
