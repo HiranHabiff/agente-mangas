@@ -1,11 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, Star, MoreVertical, Pencil, Image, Search, Trash2 } from 'lucide-react';
+import { ArrowLeft, Star, MoreVertical, Pencil, Image, Search, Trash2, List, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { MangaImage } from '@/components/ui/manga-image';
 import { MangaProgress } from './manga-progress';
+import { AddToListModal } from './add-to-list-modal';
+import { AddReminderModal } from './add-reminder-modal';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -183,6 +185,28 @@ export function MangaHero({
                 ))}
               </SelectContent>
             </Select>
+
+            <AddToListModal
+              mangaId={manga.id}
+              mangaTitle={manga.primaryTitle}
+              trigger={
+                <Button variant="outline" size="sm" className="h-9 gap-2">
+                  <List className="h-4 w-4" />
+                  Add to List
+                </Button>
+              }
+            />
+
+            <AddReminderModal
+              mangaId={manga.id}
+              mangaTitle={manga.primaryTitle}
+              trigger={
+                <Button variant="outline" size="sm" className="h-9 gap-2">
+                  <Bell className="h-4 w-4" />
+                  Reminder
+                </Button>
+              }
+            />
 
             {manga.type && (
               <Badge variant="secondary">{manga.type.name}</Badge>

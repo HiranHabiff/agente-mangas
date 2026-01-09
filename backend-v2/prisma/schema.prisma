@@ -212,8 +212,9 @@ model mangas {
   ratingRef         ratings?               @relation(fields: [rating_id], references: [id], onUpdate: NoAction)
   statusRef         status?                @relation(fields: [status_id], references: [id], onUpdate: NoAction)
   typeRef           types?                 @relation(fields: [type_id], references: [id], onUpdate: NoAction)
-  reading_sessions  reading_sessions[]
-  reminders         reminders[]
+  reading_sessions    reading_sessions[]
+  reminders           reminders[]
+  manga_reading_lists manga_reading_lists[]
 
   @@index([legacy_id], map: "idx_mangas_legacy_id")
   @@index([primary_title(ops: raw("gin_trgm_ops"))], map: "idx_mangas_primary_title_trgm", type: Gin)
@@ -361,4 +362,36 @@ model warnings {
 
   @@index([name], map: "idx_warnings_name")
   @@index([name_english], map: "idx_warnings_name_english")
+}
+
+/// Reading lists for organizing mangas into custom collections
+model reading_lists {
+  id                  String                @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name                String                @db.VarChar(100)
+  description         String?
+  color               String?               @db.VarChar(7)
+  icon                String?               @db.VarChar(50)
+  is_public           Boolean?              @default(false)
+  sort_order          Int?                  @default(0)
+  created_at          DateTime?             @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime?             @default(now()) @db.Timestamptz(6)
+  manga_reading_lists manga_reading_lists[]
+
+  @@index([name], map: "idx_reading_lists_name")
+  @@index([sort_order], map: "idx_reading_lists_sort_order")
+}
+
+/// Junction table for mangas in reading lists
+model manga_reading_lists {
+  manga_id        String        @db.Uuid
+  list_id         String        @db.Uuid
+  sort_order      Int?          @default(0)
+  notes           String?
+  added_at        DateTime?     @default(now()) @db.Timestamptz(6)
+  mangas          mangas        @relation(fields: [manga_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  reading_lists   reading_lists @relation(fields: [list_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([manga_id, list_id])
+  @@index([manga_id], map: "idx_manga_reading_lists_manga_id")
+  @@index([list_id], map: "idx_manga_reading_lists_list_id")
 }

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Book, LayoutDashboard, Settings, Copy, ChevronDown, Tags, Palette, Globe, AlertTriangle, Users, Star, Layers, Plus } from 'lucide-react';
+import { Book, LayoutDashboard, Settings, Copy, ChevronDown, Tags, Palette, Globe, AlertTriangle, Users, Star, Layers, Plus, List } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
@@ -18,6 +18,7 @@ import { AddMangaModal } from '@/components/manga/add-manga-modal';
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Mangas', href: '/mangas', icon: Book },
+  { name: 'Lists', href: '/lists', icon: List },
   { name: 'Duplicates', href: '/duplicates', icon: Copy },
 ];
 

@@ -229,3 +229,172 @@ export async function updateAdminItem(table: string, id: string, data: Partial<T
 export async function deleteAdminItem(table: string, id: string): Promise<void> {
   await fetchApi(`/admin/${table}/${id}`, { method: 'DELETE' });
 }
+
+// Reading Lists
+export interface ReadingList {
+  id: string;
+  name: string;
+  description?: string | null;
+  color?: string | null;
+  icon?: string | null;
+  isPublic: boolean;
+  sortOrder: number;
+  mangaCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ReadingListDetail extends ReadingList {
+  mangas: {
+    id: string;
+    primaryTitle: string;
+    imageUrl?: string | null;
+    imageFilename?: string | null;
+    status: string;
+    lastChapterRead: number;
+    totalChapters?: number | null;
+    rating?: number | null;
+    addedAt: string;
+    notes?: string | null;
+    sortOrder: number;
+    type?: { id: string; name: string; color?: string } | null;
+    genres: { id: string; name: string; color?: string }[];
+  }[];
+}
+
+export interface CreateListData {
+  name: string;
+  description?: string;
+  color?: string;
+  icon?: string;
+  isPublic?: boolean;
+  sortOrder?: number;
+}
+
+export interface AddMangaToListData {
+  mangaId: string;
+  sortOrder?: number;
+  notes?: string;
+}
+
+export async function getLists(): Promise<ReadingList[]> {
+  return fetchApi<ReadingList[]>('/lists');
+}
+
+export async function getList(id: string): Promise<ReadingListDetail> {
+  return fetchApi<ReadingListDetail>(`/lists/${id}`);
+}
+
+export async function createList(data: CreateListData): Promise<ReadingList> {
+  return fetchApi<ReadingList>('/lists', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateList(id: string, data: Partial<CreateListData>): Promise<ReadingList> {
+  return fetchApi<ReadingList>(`/lists/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteList(id: string): Promise<void> {
+  await fetchApi(`/lists/${id}`, { method: 'DELETE' });
+}
+
+export async function addMangaToList(listId: string, data: AddMangaToListData): Promise<void> {
+  await fetchApi(`/lists/${listId}/mangas`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function removeMangaFromList(listId: string, mangaId: string): Promise<void> {
+  await fetchApi(`/lists/${listId}/mangas/${mangaId}`, { method: 'DELETE' });
+}
+
+export interface MangaListInfo {
+  id: string;
+  name: string;
+  color?: string | null;
+  icon?: string | null;
+  addedAt: string;
+  notes?: string | null;
+}
+
+export async function getMangaLists(mangaId: string): Promise<MangaListInfo[]> {
+  return fetchApi<MangaListInfo[]>(`/lists/manga/${mangaId}`);
+}
+
+// Reminders
+export interface Reminder {
+  id: string;
+  mangaId: string;
+  reminderType: string;
+  message?: string | null;
+  scheduledFor: string;
+  isActive: boolean;
+  isRecurring: boolean;
+  recurrenceDays?: number | null;
+  lastTriggeredAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  manga?: {
+    id: string;
+    primaryTitle: string;
+    imageUrl?: string | null;
+    imageFilename?: string | null;
+    lastChapterRead?: number;
+    totalChapters?: number | null;
+  };
+}
+
+export interface CreateReminderData {
+  mangaId: string;
+  reminderType?: string;
+  message?: string;
+  scheduledFor: string;
+  isRecurring?: boolean;
+  recurrenceDays?: number;
+}
+
+export async function getReminders(): Promise<Reminder[]> {
+  return fetchApi<Reminder[]>('/reminders');
+}
+
+export async function getTriggeredReminders(): Promise<Reminder[]> {
+  return fetchApi<Reminder[]>('/reminders/triggered');
+}
+
+export async function getMangaReminders(mangaId: string): Promise<Reminder[]> {
+  return fetchApi<Reminder[]>(`/reminders/manga/${mangaId}`);
+}
+
+export async function getReminder(id: string): Promise<Reminder> {
+  return fetchApi<Reminder>(`/reminders/${id}`);
+}
+
+export async function createReminder(data: CreateReminderData): Promise<Reminder> {
+  return fetchApi<Reminder>('/reminders', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateReminder(id: string, data: Partial<CreateReminderData> & { isActive?: boolean }): Promise<Reminder> {
+  return fetchApi<Reminder>(`/reminders/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function dismissReminder(id: string): Promise<{ success: boolean }> {
+  return fetchApi<{ success: boolean }>(`/reminders/${id}/dismiss`, {
+    method: 'POST',
+  });
+}
+
+export async function deleteReminder(id: string): Promise<void> {
+  await fetchApi(`/reminders/${id}`, { method: 'DELETE' });
+}
