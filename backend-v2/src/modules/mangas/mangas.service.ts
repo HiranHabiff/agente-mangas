@@ -239,6 +239,7 @@ export class MangasService {
       themeIds,
       tagIds,
       alternativeNames,
+      links,
     } = createMangaDto;
 
     const manga = await this.prisma.mangas.create({
@@ -269,19 +270,37 @@ export class MangasService {
           ? { create: alternativeNames.map((name) => ({ name })) }
           : undefined,
       },
-      include: {
-        manga_genres: { include: { genres: true } },
-        manga_themes: { include: { themes: true } },
-        manga_tags: { include: { tags: true } },
-        manga_names: true,
-        statusRef: true,
-        typeRef: true,
-        ratingRef: true,
-        demographic: true,
-      },
     });
 
-    return this.transformMangaDetail(manga);
+    // Download da imagem para o storage local se URL foi fornecida
+    if (imageUrl) {
+      try {
+        await this.imageService.downloadImage(manga.id, imageUrl);
+      } catch (error) {
+        // Se falhar o download, apenas loga o erro mas não impede a criação
+        console.error(`Failed to download image for manga ${manga.id}:`, error);
+      }
+    }
+
+    // Cria links se fornecidos
+    if (links?.length) {
+      for (const link of links) {
+        const siteId = link.siteId || (await this.findOrCreateSiteFromUrl(link.url));
+        await this.prisma.manga_links.create({
+          data: {
+            manga_id: manga.id,
+            url: link.url,
+            site_id: siteId,
+            label: link.label,
+            is_primary: link.isPrimary ?? false,
+            is_active: true,
+          },
+        });
+      }
+    }
+
+    // Busca novamente para retornar com links e imagem atualizada
+    return this.findOne(manga.id);
   }
 
   async update(id: string, updateMangaDto: UpdateMangaDto) {

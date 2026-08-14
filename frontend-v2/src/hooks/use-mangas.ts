@@ -1,7 +1,8 @@
 'use client';
 
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getMangas, getManga, updateManga, deleteManga, updateChapter, updateImage, updateStatus, getFilterOptions, getStats, getSites, getReadingSessions, getReadingStats } from '@/lib/api';
+import { getMangas, getManga, createManga, updateManga, deleteManga, updateChapter, updateImage, updateStatus, getFilterOptions, getStats, getSites, getReadingSessions, getReadingStats } from '@/lib/api';
+import type { CreateMangaData } from '@/lib/api';
 import type { MangaFilters } from '@/types/manga';
 
 export function useMangas(filters: MangaFilters = {}) {
@@ -28,6 +29,19 @@ export function useManga(id: string) {
     queryKey: ['manga', id],
     queryFn: () => getManga(id),
     enabled: !!id,
+  });
+}
+
+export function useCreateManga() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: CreateMangaData) => createManga(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['mangas'] });
+      queryClient.invalidateQueries({ queryKey: ['mangas-infinite'] });
+      queryClient.invalidateQueries({ queryKey: ['stats'] });
+    },
   });
 }
 
