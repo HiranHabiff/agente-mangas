@@ -52,7 +52,8 @@
       "Bash(docker compose exec:*)",
       "Bash(docker compose logs:*)",
       "Bash(timeout 10 docker-compose logs:*)",
-      "Bash(timeout 15 docker-compose logs:*)"
+      "Bash(timeout 15 docker-compose logs:*)",
+      "Bash(git merge:*)"
     ],
     "deny": [],
     "ask": []
