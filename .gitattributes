@@ -1,0 +1,22 @@
+# Normalização de fim de linha.
+#
+# O código roda em containers Linux (backend NestJS e frontend Vite): CRLF
+# quebra scripts e faz o git marcar arquivos inteiros como alterados quando
+# outra máquina toca neles. LF no repositório e também no working tree.
+* text=auto eol=lf
+
+# Binários — nunca normalizar
+*.ico   binary
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.webp  binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.otf   binary
+*.pdf   binary
+
+# Lockfiles são gerados: colapsa o diff na visualização do GitHub
+package-lock.json linguist-generated=true
