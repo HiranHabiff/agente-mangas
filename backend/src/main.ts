@@ -29,9 +29,9 @@ async function bootstrap() {
 
   // Swagger
   const config = new DocumentBuilder()
-    .setTitle('Manga API v2')
+    .setTitle('Manga API')
     .setDescription('API para gerenciamento de mangás')
-    .setVersion('2.0')
+    .setVersion('1.0')
     .addTag('mangas')
     .addTag('tags')
     .addTag('stats')
@@ -44,7 +44,7 @@ async function bootstrap() {
   const port = process.env.PORT || 3011;
   await app.listen(port);
 
-  console.log(`🚀 Backend V2 running on http://localhost:${port}`);
+  console.log(`🚀 Backend running on http://localhost:${port}`);
   console.log(`📚 Swagger docs on http://localhost:${port}/docs`);
 }
 

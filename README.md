@@ -1,481 +1,248 @@
-# Manga Agent - Sistema de Gerenciamento de Mangás com IA
+# Manga Agent — Gerenciador de Mangás
 
-Sistema completo de gerenciamento de mangás com Inteligência Artificial, chat conversacional e busca semântica usando Gemini AI.
+Sistema de catalogação e acompanhamento de leitura de mangás: coleção com filtros,
+progresso por capítulo, listas de leitura, lembretes, detecção de duplicatas e
+administração das tabelas de apoio (gêneros, temas, tags, sites…).
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js](https://img.shields.io/badge/Node.js-22-green.svg)](https://nodejs.org/)
+[![NestJS](https://img.shields.io/badge/NestJS-11-e0234e.svg)](https://nestjs.com/)
+[![React](https://img.shields.io/badge/React-19-61dafb.svg)](https://react.dev/)
+[![Vite](https://img.shields.io/badge/Vite-7-646cff.svg)](https://vite.dev/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-blue.svg)](https://www.docker.com/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)](https://www.typescriptlang.org/)
-[![React](https://img.shields.io/badge/React-19-61dafb.svg)](https://reactjs.org/)
 
 ---
 
-## Características Principais
+## Stack
 
-- 🤖 **Chat com IA**: Converse com o assistente sobre seus mangás usando linguagem natural
-- 🔍 **Busca Semântica**: Encontre mangás por similaridade de sinopse usando embeddings vetoriais
-- 📚 **Múltiplos Títulos**: Suporte nativo para nomes alternativos em diferentes idiomas
-- 📊 **Tracking de Progresso**: Acompanhe capítulos lidos e histórico de leitura
-- ⏰ **Sistema de Lembretes**: Notificações para novos capítulos e updates
-- 🏷️ **Tags Inteligentes**: Categorização por gênero, demografia e temas
-- 🎨 **Interface Moderna**: Frontend React 19 + Chakra UI 3
-- 🐳 **Docker Completo**: Setup com hot reload e persistência de dados
-- 🔌 **MCP Server**: Protocolo de comunicação com agentes de IA
+### Backend — [`backend/`](backend/)
+- **NestJS 11** + TypeScript
+- **Prisma 5** como ORM
+- **PostgreSQL 15 + pgvector** (extensão disponível para embeddings)
+- **Swagger** em `/docs`
 
----
+### Frontend — [`frontend/`](frontend/)
+- **React 19** + TypeScript
+- **Vite 7** (build e dev server)
+- **React Router 7** (SPA, sem SSR)
+- **Tailwind CSS v4** + **shadcn/ui** (Radix)
+- **TanStack Query** para dados
 
-## Stack Tecnológica
-
-### Backend
-- **Runtime**: Node.js 22 + TypeScript
-- **API REST**: Express.js
-- **IA**: Google Gemini (gemini-2.5-flash + gemini-embedding-001)
-- **Banco de Dados**: PostgreSQL 15 + pgvector (embeddings vetoriais 768 dimensões)
-- **Logging**: Winston
-- **MCP**: Model Context Protocol Server
-
-### Frontend
-- **Framework**: React 19
-- **UI Library**: Chakra UI 3.30.0
-- **Build Tool**: Vite
-- **Linguagem**: TypeScript
-
-### Infraestrutura
-- **Containerização**: Docker + Docker Compose
-- **Servidor Web**: Nginx (produção)
-- **Extensões PostgreSQL**: uuid-ossp, pg_trgm, pgvector
-- **Hot Reload**: Desenvolvimento com recarga automática
+### Infra
+- Docker + Docker Compose (3 serviços)
+- nginx serve os estáticos do frontend em produção
 
 ---
 
-## Estrutura do Projeto
+## Estrutura
 
 ```
 agente-mangas/
-├── backend/              # Backend Node.js + API REST + MCP Server
+├── backend/                  # API NestJS + Prisma
+│   ├── prisma/schema.prisma  # Schema do banco
 │   ├── src/
-│   │   ├── api/         # Express REST endpoints
-│   │   ├── mcp/         # MCP Server e ferramentas
-│   │   ├── services/    # Lógica de negócio e IA
-│   │   ├── repositories/# Camada de acesso a dados
-│   │   ├── models/      # Modelos de dados
-│   │   └── config/      # Configurações e env
-│   └── Dockerfile       # Multi-stage build (dev/prod)
+│   │   ├── modules/          # mangas, lists, reminders, admin,
+│   │   │                     # tags, stats, duplicates, health
+│   │   ├── prisma/           # PrismaService
+│   │   └── config/
+│   └── Dockerfile            # Multi-stage (dev/prod)
 │
-├── frontend/            # Frontend React SPA
+├── frontend/                 # SPA React + Vite
 │   ├── src/
-│   │   ├── components/  # Componentes reutilizáveis
-│   │   ├── pages/       # Páginas da aplicação
-│   │   ├── services/    # Cliente API
-│   │   └── theme/       # Tema customizado Chakra UI
-│   ├── Dockerfile       # Multi-stage build
-│   └── nginx.conf       # Config Nginx para produção
+│   │   ├── pages/            # Uma page por rota
+│   │   ├── components/       # layout, manga, filters, admin, ui (shadcn)
+│   │   ├── hooks/            # use-mangas, use-lists, use-admin, use-reminders
+│   │   ├── lib/api.ts        # Cliente HTTP
+│   │   └── globals.css       # Tokens de tema
+│   ├── e2e/                  # Bateria e2e (29 testes, Chrome headless)
+│   ├── Dockerfile            # Multi-stage (dev/prod com nginx)
+│   └── nginx.conf            # SPA fallback
 │
-├── storage/             # Dados persistentes (não versionado)
-│   ├── images/          # Capas dos mangás
-│   ├── postgres/        # Dados PostgreSQL
-│   │   ├── db/          # Volume do banco
-│   │   └── init.sql     # Schema inicial
-│   └── temp/            # Arquivos temporários
+├── storage/                  # Dados persistentes (não versionado)
+│   ├── images/               # Capas dos mangás
+│   └── postgres/db/          # Volume do PostgreSQL
 │
-├── docs/                # Documentação técnica
-│   ├── API.md           # Documentação API REST
-│   ├── MCP_SETUP.md     # Setup MCP Server
-│   └── FRONTEND_GUIDE.md# Guia do frontend
-│
-├── docker-compose.yml   # Orquestração de 4 serviços
-├── .env.example         # Template de variáveis
-├── .gitignore           # Arquivos ignorados
-├── DOCKER-SETUP.md      # Guia completo Docker
-└── README.md            # Este arquivo
+├── docker-compose.yml
+├── .env.example
+├── DOCKER-SETUP.md
+└── DATABASE_SCHEMA.md
 ```
 
 ---
 
-## Pré-requisitos
-
-- **Docker** e **Docker Compose** instalados
-- **Gemini API Key** - [Obter gratuitamente aqui](https://makersuite.google.com/app/apikey)
-- (Opcional) **Node.js 22+** para desenvolvimento local sem Docker
-
----
-
-## Instalação Rápida
-
-### 1. Clone o Repositório
+## Instalação
 
 ```bash
 git clone https://github.com/HiranHabiff/agente-mangas.git
 cd agente-mangas
+
+cp .env.example .env    # ajuste DB_PASSWORD
+
+docker compose up -d
 ```
 
-### 2. Configure as Variáveis de Ambiente
-
-```bash
-# Copie o template
-cp .env.example .env
-
-# Edite o arquivo .env
-nano .env  # ou use seu editor preferido
-```
-
-**Variáveis obrigatórias:**
-```env
-GEMINI_API_KEY=sua_chave_api_gemini_aqui
-DB_PASSWORD=senha_forte_postgresql
-PGADMIN_PASSWORD=senha_pgadmin
-```
-
-### 3. Inicie Todos os Serviços
-
-```bash
-docker-compose up -d
-```
-
-Aguarde ~30 segundos para todos os containers iniciarem.
-
-### 4. Verifique o Status
-
-```bash
-docker-compose ps
-```
-
-Todos os serviços devem estar com status `Up` (saudável).
-
-### 5. Acesse a Aplicação
-
-- **Frontend (Interface Principal)**: http://localhost:5173
-- **API REST (Backend)**: http://localhost:3000/api
-- **pgAdmin (Gerenciador DB)**: http://localhost:5050
-
-**Credenciais pgAdmin:**
-- Email: `admin@manga.com`
-- Senha: (valor de `PGADMIN_PASSWORD` no .env)
+Aguarde ~30s. Verifique com `docker compose ps` — os três devem estar `Up`
+(o postgres com `healthy`).
 
 ---
 
-## Serviços e Portas
+## Serviços e portas
 
 | Serviço | Porta | Container | Descrição |
-|---------|-------|-----------|-----------|
-| **Frontend** | 5173 | `manga-frontend` | Interface React com Chakra UI |
-| **Backend** | 3000 | `manga-backend` | API REST + MCP Server + IA |
-| **PostgreSQL** | 5432 | `manga-postgres` | Banco de dados com pgvector |
-| **pgAdmin** | 5050 | `manga-pgadmin` | Interface web para PostgreSQL |
+|---|---|---|---|
+| **Frontend** | 3013 | `manga-frontend` | SPA React + Vite |
+| **Backend** | 3011 | `manga-backend` | API NestJS + Prisma |
+| **PostgreSQL** | 5432 | `manga-postgres` | Banco com pgvector |
+
+- Interface: http://localhost:3013
+- API: http://localhost:3011/api
+- Swagger: http://localhost:3011/docs
+- Capas: http://localhost:3011/images/`<arquivo>`
 
 ---
 
-## Como Usar
+## Telas
 
-### 1. Interface Web (Frontend)
-
-Acesse http://localhost:5173 e você verá:
-
-- **Dashboard**: Estatísticas e visão geral dos mangás
-- **Lista de Mangás**: Todos os mangás cadastrados com filtros
-- **Busca**: Buscar por nome, tags, sinopse
-- **Chat IA**: Converse com o assistente sobre seus mangás
-- **Detalhes**: Informações completas de cada mangá
-
-### 2. API REST
-
-A API REST está disponível em `http://localhost:3000/api`
-
-**Endpoints principais:**
-
-```bash
-# Listar todos os mangás
-GET /api/mangas
-
-# Buscar por nome
-GET /api/mangas/search?q=naruto
-
-# Detalhes de um mangá
-GET /api/mangas/:id
-
-# Estatísticas
-GET /api/stats
-
-# Tags disponíveis
-GET /api/tags
-
-# Busca semântica (embeddings)
-POST /api/mangas/semantic-search
-```
-
-**Exemplo de uso:**
-
-```bash
-# Listar mangás
-curl http://localhost:3000/api/mangas | jq
-
-# Estatísticas
-curl http://localhost:3000/api/stats | jq
-```
-
-### 3. Chat com IA
-
-No frontend, acesse a página de **Chat** e converse naturalmente:
-
-```
-Você: "Quais mangás de ação eu tenho?"
-IA: "Você tem 15 mangás de ação, incluindo..."
-
-Você: "Recomende algo parecido com Tower of God"
-IA: [Usa busca semântica e recomenda títulos similares]
-
-Você: "Marque que li até o capítulo 50 de Naruto"
-IA: "Atualizado! Você está no capítulo 50 de Naruto."
-```
-
-### 4. MCP Server (Integração com Agentes)
-
-O backend expõe um **MCP Server** que permite integração com agentes de IA.
-
-Para configurar, consulte: [docs/MCP_SETUP.md](docs/MCP_SETUP.md)
-
-**Ferramentas disponíveis via MCP:**
-- `list_mangas` - Listar mangás
-- `search_manga` - Buscar mangás
-- `get_manga_details` - Detalhes de um mangá
-- `update_reading_progress` - Atualizar progresso
-- `add_tag` - Adicionar tags
-- `create_reminder` - Criar lembretes
-- `ai_recommend` - Recomendações com IA
-- `semantic_search` - Busca por similaridade
+| Rota | O que faz |
+|---|---|
+| `/` | Dashboard: estatísticas, lembretes disparados, listas |
+| `/mangas` | Coleção com busca, filtros (status, gêneros, temas, tags, tipos, ratings, demografia), ordenação e scroll infinito |
+| `/mangas/:id` | Detalhe: progresso, status, abas de sinopse/nomes/links/notas/histórico |
+| `/mangas/:id/edit` | Edição completa em abas |
+| `/lists` e `/lists/:id` | Listas de leitura |
+| `/duplicates` | Detecção e merge de duplicatas |
+| `/admin` e `/admin/:table` | CRUD das tabelas de apoio |
 
 ---
 
-## Comandos Úteis
+## API
 
-### Gerenciamento de Containers
+Prefixo global `/api`. Principais grupos:
 
 ```bash
-# Iniciar todos os serviços
-docker-compose up -d
+GET    /api/mangas                 # lista com filtros e paginação
+GET    /api/mangas/:id             # detalhe
+POST   /api/mangas                 # criar (apenas primaryTitle é obrigatório)
+PATCH  /api/mangas/:id             # atualizar
+DELETE /api/mangas/:id             # remover
 
-# Parar todos os serviços
-docker-compose down
+GET    /api/lists                  # listas de leitura
+POST   /api/lists/:id/mangas       # adicionar mangá à lista
+DELETE /api/lists/:id/mangas/:mid  # remover da lista
 
-# Ver logs em tempo real
-docker-compose logs -f
+GET    /api/reminders              # lembretes
+POST   /api/reminders
 
-# Ver logs de um serviço específico
-docker-compose logs -f backend
-
-# Reiniciar um serviço
-docker-compose restart backend
-
-# Reconstruir após mudanças
-docker-compose up -d --build
-
-# Parar e remover volumes (CUIDADO: apaga dados)
-docker-compose down -v
+GET    /api/stats                  # totais, por status, média de nota
+GET    /api/tags/genres            # opções de filtro
+GET    /api/admin/:table           # CRUD das tabelas de apoio
+GET    /api/duplicates             # grupos de duplicatas
 ```
 
-### Acessar Containers
+Exemplos:
 
 ```bash
-# Shell do backend
-docker-compose exec backend sh
-
-# Shell do PostgreSQL
-docker-compose exec postgres psql -U manga_user -d manga_db
-
-# Ver estrutura do banco
-docker-compose exec postgres psql -U manga_user -d manga_db -c "\dt"
-
-# Query SQL
-docker-compose exec postgres psql -U manga_user -d manga_db -c "SELECT COUNT(*) FROM mangas;"
+curl http://localhost:3011/api/stats
+curl "http://localhost:3011/api/mangas?limit=5&sortBy=updated_at&sortOrder=desc"
 ```
 
-### Desenvolvimento
+A lista completa e navegável está no Swagger: http://localhost:3011/docs
+
+---
+
+## Desenvolvimento
+
+Hot reload está ativo nos dois serviços — edite `backend/src/` ou `frontend/src/`
+e a mudança é aplicada sozinha.
+
+Para rodar fora do Docker:
 
 ```bash
-# Ver código em tempo real (hot reload está ativo)
-# Edite arquivos em backend/src/ ou frontend/src/
-# As mudanças são detectadas automaticamente
+cd backend  && npm install && npm run start:dev   # :3011
+cd frontend && npm install && npm run dev         # :3013
+```
 
-# Ver variáveis de ambiente do backend
-docker-compose exec backend printenv | grep -E "DB|GEMINI|PORT"
+### Testes
 
-# Verificar saúde do PostgreSQL
-docker-compose exec postgres pg_isready -U manga_user
+O frontend tem uma bateria e2e que dirige um Chrome headless e confere cada
+resultado na API:
+
+```bash
+cd frontend
+npm run e2e     # 29 testes: CRUD de mangás, listas, lembretes, admin e filtros
+```
+
+Detalhes e o que ainda não é coberto: [frontend/e2e/README.md](frontend/e2e/README.md)
+
+### Comandos úteis
+
+```bash
+docker compose up -d              # subir
+docker compose down               # parar
+docker compose logs -f backend    # logs de um serviço
+docker compose up -d --build      # reconstruir após mudança de dependências
+docker compose down -v            # CUIDADO: apaga os volumes
+
+docker compose exec postgres psql -U manga_user -d manga_db
+docker compose exec backend npx prisma studio
 ```
 
 ---
 
-## Banco de Dados
+## Banco de dados
 
-### Schema Principal
+Schema gerenciado pelo Prisma em [`backend/prisma/schema.prisma`](backend/prisma/schema.prisma).
+Descrição das tabelas e relações: [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md).
 
-**Tabelas:**
-- `mangas` - Informações principais (título, sinopse, status, rating, embedding)
-- `manga_names` - Títulos alternativos em múltiplos idiomas
-- `tags` - Categorias (gênero, demografia, temas)
-- `manga_tags` - Relação N:N entre mangás e tags
-- `reminders` - Sistema de notificações
-- `reading_sessions` - Histórico de leitura
-- `creators` - Autores e artistas
-
-**Recursos:**
-- ✅ Chaves primárias UUID
-- ✅ Full-text search com `pg_trgm`
-- ✅ Busca vetorial com `pgvector` (768 dimensões)
-- ✅ Soft deletes (deleted_at)
-- ✅ Timestamps automáticos
-- ✅ Triggers e funções
-- ✅ Índices otimizados
-
-### Acessar via pgAdmin
-
-1. Acesse http://localhost:5050
-2. Login: `admin@manga.com` / senha do .env
-3. **Add Server** →
-   - Name: `Manga DB`
-   - Host: `postgres`
-   - Port: `5432`
-   - Username: `manga_user`
-   - Password: (valor de `DB_PASSWORD`)
+```bash
+docker compose exec backend npx prisma migrate dev    # criar migração
+docker compose exec backend npx prisma generate       # regenerar o client
+```
 
 ---
 
 ## Troubleshooting
 
-### Containers não iniciam
+**Containers não sobem** — veja `docker compose logs` e confira as portas:
 
 ```bash
-# Ver logs de erro
-docker-compose logs
-
-# Verificar portas em uso (Windows)
-netstat -ano | findstr "3000 5173 5432 5050"
-
-# Verificar portas (Linux/Mac)
-lsof -i :3000,5173,5432,5050
-
-# Reiniciar do zero
-docker-compose down -v
-docker-compose up -d
+netstat -ano | findstr "3011 3013 5432"     # Windows
+lsof -i :3011 -i :3013 -i :5432             # Linux/Mac
 ```
 
-### Erro "GEMINI_API_KEY not found"
+**Frontend recarrega sozinho durante a navegação** — não monte `./storage` no
+serviço do frontend. O watcher do Vite varre a raiz do projeto e as milhares de
+imagens fazem ele disparar full-reload. O frontend não lê `storage/`: as capas
+vêm do backend em `:3011/images/`.
 
-Certifique-se de que:
-1. Arquivo `.env` existe na raiz do projeto
-2. Variável `GEMINI_API_KEY` está preenchida
-3. Não há espaços extras: `GEMINI_API_KEY=sua_chave`
-4. Reinicie os containers: `docker-compose restart backend`
-
-### PostgreSQL não conecta
+**Capas não aparecem** — confira se o arquivo existe e se o backend serve:
 
 ```bash
-# Verificar saúde
-docker-compose ps
-
-# Deve mostrar "healthy" para postgres
-# Se não, ver logs:
-docker-compose logs postgres
-
-# Testar conexão manual
-docker-compose exec postgres psql -U manga_user -d manga_db -c "SELECT 1;"
+ls storage/images/
+curl -I http://localhost:3011/images/<arquivo>.jpg
 ```
 
-### Hot reload não funciona
+**PostgreSQL não conecta** — `docker compose ps` deve mostrar `healthy`:
 
 ```bash
-# Reconstruir containers
-docker-compose down
-docker-compose up -d --build
-
-# Verificar se volumes estão mapeados
-docker-compose exec backend ls -la /app/src
+docker compose exec postgres pg_isready -U manga_user
 ```
 
-### Imagens não aparecem
-
-```bash
-# Verificar se a pasta existe
-ls -la storage/images/
-
-# Testar acesso direto
-curl http://localhost:3000/images/nome-do-arquivo.jpg
-
-# Ver logs do backend
-docker-compose logs backend | grep images
-```
-
-**Mais soluções:** [DOCKER-SETUP.md](DOCKER-SETUP.md)
+Mais detalhes: [DOCKER-SETUP.md](DOCKER-SETUP.md)
 
 ---
 
 ## Produção
 
-Para deploy em produção:
-
-1. **Altere o ambiente:**
-   ```env
-   NODE_ENV=production
-   ```
-
-2. **Configure senhas fortes:**
-   ```env
-   DB_PASSWORD=senha_muito_forte_e_aleatoria
-   PGADMIN_PASSWORD=outra_senha_forte
-   ```
-
-3. **Use HTTPS** com certificado SSL (Nginx/Caddy)
-
-4. **Configure backup automático** do PostgreSQL
-
-5. **Desative pgAdmin** (comente no docker-compose.yml)
-
-6. **Consulte a seção de produção:** [DOCKER-SETUP.md](DOCKER-SETUP.md)
-
----
-
-## Documentação Técnica
-
-- **[DOCKER-SETUP.md](DOCKER-SETUP.md)** - Guia completo de Docker e configuração
-- **[docs/API.md](docs/API.md)** - Documentação da API REST
-- **[docs/MCP_SETUP.md](docs/MCP_SETUP.md)** - Configuração do MCP Server
-- **[docs/FRONTEND_GUIDE.md](docs/FRONTEND_GUIDE.md)** - Guia de desenvolvimento frontend
-
----
-
-## Contribuindo
-
-Contribuições são bem-vindas! Para contribuir:
-
-1. Fork o projeto
-2. Crie uma branch para sua feature: `git checkout -b feature/MinhaFeature`
-3. Commit suas mudanças: `git commit -m 'feat: adiciona MinhaFeature'`
-4. Push para a branch: `git push origin feature/MinhaFeature`
-5. Abra um Pull Request
-
----
-
-## Licença
-
-Este projeto está sob a licença **MIT**. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
+1. `NODE_ENV=production` e senha forte em `DB_PASSWORD`
+2. Backend: estágio `production` do Dockerfile (`npm run build` + `node dist/main`)
+3. Frontend: estágio `production` serve os estáticos por nginx —
+   `VITE_API_URL` precisa ser passada como `--build-arg`, pois é embutida no bundle
+4. HTTPS na frente (nginx/Caddy) e backup automático do PostgreSQL
 
 ---
 
 ## Autor
 
-**Hiran Habiff**
+**Hiran Habiff** — [@HiranHabiff](https://github.com/HiranHabiff)
 
-- GitHub: [@HiranHabiff](https://github.com/HiranHabiff)
-- Projeto: [agente-mangas](https://github.com/HiranHabiff/agente-mangas)
-
----
-
-## Suporte
-
-- **Issues**: [GitHub Issues](https://github.com/HiranHabiff/agente-mangas/issues)
-- **Documentação**: [docs/](docs/)
-- **Status**: 🟢 Em desenvolvimento ativo
-
----
-
-**Desenvolvido com TypeScript, React, Gemini AI e Docker** 🚀
+Issues: [github.com/HiranHabiff/agente-mangas/issues](https://github.com/HiranHabiff/agente-mangas/issues)

@@ -407,22 +407,70 @@ docker exec -it manga-postgres psql -U manga_user -d manga_db
 
 ## Statistics
 
+Contagens reais do banco de desenvolvimento:
+
 | Table | Records |
 |-------|---------|
-| mangas | ~3000+ |
-| manga_names | ~8000+ |
-| manga_tags | ~15000+ |
+| manga_names | 202.391 |
+| manga_genres | 92.286 |
+| manga_links | 45.489 |
+| mangas | 35.232 |
+| manga_tags | 10.150 |
+| reading_sessions | 3.727 |
 | tags | 148 |
-| genres | 24 |
-| themes | 36 |
+| sites | 129 |
+| themes | 32 |
+| genres | 17 |
+| reminders | 14 |
+| reading_lists | 4 |
 | status | 4 |
+| demographic | 4 |
 | types | 3 |
 | ratings | 3 |
-| demographic | 4 |
-| characters | 2 |
 | warnings | 3 |
-| sites | 21 |
+| characters | 2 |
 
 ---
 
-*Last updated: 2026-01-04 (v2 - added lookup table relationships)*
+## Listas de leitura
+
+Recurso adicionado depois da primeira versão deste documento.
+
+### `reading_lists`
+
+Coleções nomeadas criadas pelo usuário.
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| `id` | uuid | PK, `uuid_generate_v4()` |
+| `name` | varchar(100) | nome da lista |
+| `description` | text | opcional |
+| `color` | varchar(7) | cor de destaque em hex, opcional |
+| `icon` | varchar(50) | opcional |
+| `is_public` | boolean | default `false` |
+| `sort_order` | int | default `0` |
+| `created_at` / `updated_at` | timestamptz | default `now()` |
+
+Índices: `idx_reading_lists_name`, `idx_reading_lists_sort_order`.
+
+### `manga_reading_lists`
+
+Junção N:N entre `mangas` e `reading_lists`.
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| `manga_id` | uuid | FK → `mangas.id`, `ON DELETE CASCADE` |
+| `list_id` | uuid | FK → `reading_lists.id`, `ON DELETE CASCADE` |
+| `sort_order` | int | default `0` |
+| `notes` | text | opcional |
+| `added_at` | timestamptz | default `now()` |
+
+PK composta `(manga_id, list_id)`. Índices em cada uma das FKs.
+
+A definição canônica de todas as tabelas está em
+[`backend/prisma/schema.prisma`](backend/prisma/schema.prisma) — este documento é
+uma visão de apoio e pode ficar atrás dele.
+
+---
+
+*Last updated: 2026-08-14 (contagens reais + listas de leitura)*

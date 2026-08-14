@@ -1,466 +1,227 @@
-# 🐳 Docker Setup - Agente Mangás
+# 🐳 Docker Setup — Agente Mangás
 
-Guia completo para executar o projeto com Docker Compose.
-
----
-
-## 📋 Pré-requisitos
-
-- **Docker Desktop** instalado e rodando
-  - Windows: https://docs.docker.com/desktop/install/windows-install/
-  - Mac: https://docs.docker.com/desktop/install/mac-install/
-  - Linux: https://docs.docker.com/desktop/install/linux-install/
-
-- **Git** (para clonar o repositório)
+Guia de operação do stack com Docker Compose. Para visão geral do projeto,
+veja o [README.md](README.md).
 
 ---
 
-## 🚀 Quick Start
+## Pré-requisitos
 
-### 1. Clone o Repositório
-
-```bash
-git clone <repo-url>
-cd _agenteMangas
-```
-
-### 2. Configure as Variáveis de Ambiente
-
-Copie o arquivo de exemplo:
-
-```bash
-cp .env.example .env
-```
-
-Edite o arquivo `.env` e configure:
-
-```env
-# Mínimo necessário
-DB_PASSWORD=sua_senha_segura
-GEMINI_API_KEY=sua_chave_gemini  # Opcional para desenvolvimento
-```
-
-### 3. Inicie os Serviços
-
-```bash
-docker-compose up -d
-```
-
-**O que vai acontecer:**
-1. ✅ PostgreSQL será iniciado e criará o banco de dados
-2. ✅ Backend API será construído e iniciado na porta 3000
-3. ✅ Frontend React será construído e iniciado na porta 5173
-4. ✅ pgAdmin será iniciado na porta 5050 (opcional)
-
-### 4. Aguarde a Inicialização
-
-```bash
-# Ver logs em tempo real
-docker-compose logs -f
-
-# Ver apenas logs do backend
-docker-compose logs -f backend
-
-# Ver apenas logs do frontend
-docker-compose logs -f frontend
-```
-
-### 5. Acesse as Aplicações
-
-- **Frontend:** http://localhost:5173
-- **Backend API:** http://localhost:3000
-- **pgAdmin:** http://localhost:5050
-  - Email: `admin@manga.local`
-  - Senha: (definida em `.env`)
+- **Docker Desktop** rodando ([Windows](https://docs.docker.com/desktop/install/windows-install/) · [Mac](https://docs.docker.com/desktop/install/mac-install/) · [Linux](https://docs.docker.com/desktop/install/linux-install/))
+- **Git**
 
 ---
 
-## 📂 Estrutura do Projeto
+## Quick Start
 
+```bash
+git clone https://github.com/HiranHabiff/agente-mangas.git
+cd agente-mangas
+
+cp .env.example .env      # ajuste ao menos DB_PASSWORD
+
+docker compose up -d
 ```
-_agenteMangas/
-├── backend/
-│   ├── src/                     # Código fonte do backend
-│   ├── Dockerfile               # Dockerfile do backend
-│   └── package.json
-│
-├── frontend/
-│   ├── src/                     # Código fonte do frontend
-│   ├── Dockerfile               # Dockerfile do frontend
-│   ├── nginx.conf               # Config Nginx (produção)
-│   └── package.json
-│
-├── storage/
-│   ├── images/                  # Imagens dos mangás
-│   └── postgres/
-│       ├── db/                  # Volume do PostgreSQL
-│       └── init.sql             # Script de inicialização do banco
-│
-├── docker-compose.yml           # Orquestração dos serviços
-├── .env                         # Variáveis de ambiente (NÃO versionar)
-└── .env.example                 # Template de variáveis
+
+O que acontece:
+
+1. PostgreSQL sobe e cria o banco (com healthcheck)
+2. Backend NestJS é construído e sobe na **3011**, só depois que o postgres fica `healthy`
+3. Frontend Vite é construído e sobe na **3013**
+
+Acompanhe a subida:
+
+```bash
+docker compose logs -f
+docker compose logs -f backend
 ```
 
 ---
 
-## 🔧 Comandos Úteis
+## Serviços
 
-### Gerenciamento de Serviços
+| Serviço | Container | Porta | Imagem/Build |
+|---|---|---|---|
+| `postgres` | `manga-postgres` | 5432 | `ankane/pgvector:latest` |
+| `backend` | `manga-backend` | 3011 | build de `./backend` |
+| `frontend` | `manga-frontend` | 3013 | build de `./frontend` |
 
-```bash
-# Iniciar todos os serviços
-docker-compose up -d
+Endereços:
 
-# Parar todos os serviços
-docker-compose stop
+- Interface: http://localhost:3013
+- API: http://localhost:3011/api
+- Swagger: http://localhost:3011/docs
+- Capas: http://localhost:3011/images/`<arquivo>`
 
-# Parar e remover containers
-docker-compose down
+---
 
-# Parar, remover e limpar volumes
-docker-compose down -v
+## Variáveis de ambiente
 
-# Reiniciar um serviço específico
-docker-compose restart backend
-docker-compose restart frontend
-docker-compose restart postgres
-```
+Ficam no `.env` da raiz (não versionado). O compose lê de lá.
 
-### Logs e Debug
+| Variável | Padrão | Usada por |
+|---|---|---|
+| `DB_NAME` | `manga_db` | postgres + `DATABASE_URL` |
+| `DB_USER` | `manga_user` | postgres + `DATABASE_URL` |
+| `DB_PASSWORD` | `manga123` | postgres + `DATABASE_URL` |
+| `DB_PORT` | `5432` | mapeamento de porta do postgres |
+| `NODE_ENV` | `development` | backend e frontend |
+| `IMAGES_PATH` | `/app/storage/images` | backend (onde grava/serve as capas) |
+| `VITE_API_URL` | `http://localhost:3011/api` | frontend, **em tempo de build** |
 
-```bash
-# Ver logs de todos os serviços
-docker-compose logs
+`DATABASE_URL` não é definida no `.env` — o compose monta a string a partir de
+`DB_USER`/`DB_PASSWORD`/`DB_NAME`.
 
-# Ver logs em tempo real
-docker-compose logs -f
+> `VITE_*` é embutida no bundle durante o build. Em produção passe como
+> `--build-arg`; definir em runtime não tem efeito.
 
-# Ver logs de um serviço específico
-docker-compose logs backend
-docker-compose logs frontend
-docker-compose logs postgres
+---
 
-# Ver últimas 100 linhas
-docker-compose logs --tail=100 backend
-```
+## Volumes
 
-### Rebuild e Atualização
+| Volume/mount | Para quê |
+|---|---|
+| `./storage/postgres/db` | dados do PostgreSQL (bind mount) |
+| `./storage` → `/app/storage` no backend | capas dos mangás |
+| `./backend/src`, `./frontend/src` | hot reload |
+| `backend-node-modules`, `frontend-node-modules` | named volumes, evitam conflito entre o `node_modules` do host e o do container |
 
-```bash
-# Rebuild de um serviço (após mudanças no Dockerfile)
-docker-compose build backend
-docker-compose build frontend
+> **Não monte `./storage` no serviço do frontend.** O watcher do Vite varre a
+> raiz do projeto; com as dezenas de milhares de imagens ali dentro ele dispara
+> full-reload no meio da navegação e a primeira carga de cada rota vai a ~13s.
+> O frontend não lê `storage/` — as capas vêm do backend.
 
-# Rebuild e restart
-docker-compose up -d --build backend
+---
 
-# Rebuild completo (todos os serviços)
-docker-compose build --no-cache
-docker-compose up -d
-```
-
-### Acesso aos Containers
-
-```bash
-# Abrir shell no container do backend
-docker-compose exec backend sh
-
-# Abrir shell no container do frontend
-docker-compose exec frontend sh
-
-# Abrir psql no PostgreSQL
-docker-compose exec postgres psql -U manga_user -d manga_db
-
-# Executar comando npm no backend
-docker-compose exec backend npm run build
-
-# Executar comando npm no frontend
-docker-compose exec frontend npm run build
-```
-
-### Banco de Dados
+## Comandos
 
 ```bash
-# Backup do banco
-docker-compose exec postgres pg_dump -U manga_user manga_db > backup.sql
+# ciclo de vida
+docker compose up -d
+docker compose down
+docker compose restart backend
+docker compose ps
 
-# Restaurar backup
-docker-compose exec -T postgres psql -U manga_user -d manga_db < backup.sql
+# logs
+docker compose logs -f
+docker compose logs --tail 50 backend
 
-# Ver tabelas
-docker-compose exec postgres psql -U manga_user -d manga_db -c "\dt"
+# reconstruir (após mudar dependências ou Dockerfile)
+docker compose up -d --build
+docker compose up -d --force-recreate frontend
 
-# Executar query
-docker-compose exec postgres psql -U manga_user -d manga_db -c "SELECT COUNT(*) FROM mangas;"
+# shell
+docker compose exec backend sh
+docker compose exec postgres psql -U manga_user -d manga_db
+
+# CUIDADO: remove os volumes nomeados
+docker compose down -v
 ```
 
 ---
 
-## 🌐 Variáveis de Ambiente
+## Banco de dados
 
-### Principais Variáveis
+```bash
+# console
+docker compose exec postgres psql -U manga_user -d manga_db
 
-| Variável | Descrição | Padrão | Obrigatória |
-|----------|-----------|--------|-------------|
-| `DB_NAME` | Nome do banco PostgreSQL | `manga_db` | ✅ |
-| `DB_USER` | Usuário do banco | `manga_user` | ✅ |
-| `DB_PASSWORD` | Senha do banco | - | ✅ |
-| `DB_PORT` | Porta externa do PostgreSQL | `5432` | ❌ |
-| `BACKEND_PORT` | Porta externa do backend | `3000` | ❌ |
-| `FRONTEND_PORT` | Porta externa do frontend | `5173` | ❌ |
-| `GEMINI_API_KEY` | Chave API do Gemini | - | ❌ |
-| `VITE_API_URL` | URL do backend para o frontend | `http://localhost:3000` | ❌ |
-| `NODE_ENV` | Ambiente (`development`/`production`) | `development` | ❌ |
+# tabelas
+docker compose exec postgres psql -U manga_user -d manga_db -c "\dt"
 
-### Obter Gemini API Key
+# Prisma
+docker compose exec backend npx prisma migrate dev
+docker compose exec backend npx prisma generate
+docker compose exec backend npx prisma studio
+```
 
-1. Acesse: https://makersuite.google.com/app/apikey
-2. Crie uma nova API key
-3. Adicione no `.env`: `GEMINI_API_KEY=sua_chave_aqui`
+### Backup e restore
 
-**Nota:** A API key é opcional para desenvolvimento básico. Necessária apenas para:
-- Busca semântica
-- Recomendações por IA
-- Geração de embeddings
+```bash
+# dump
+docker exec manga-postgres pg_dump -U manga_user manga_db > base-dados.sql
+
+# restore
+docker exec -i manga-postgres psql -U manga_user -d manga_db < base-dados.sql
+```
+
+`base-dados.sql` está no `.gitignore` — é um dump local, não vai para o repositório.
 
 ---
 
-## 🔄 Hot Reload (Desenvolvimento)
+## Produção
 
-### Backend
+Os dois Dockerfiles são multi-stage. O estágio `development` é o default.
 
-Mudanças em `backend/src/**/*.ts` serão detectadas automaticamente e o servidor será reiniciado.
+```bash
+# backend: compila e roda dist/main
+docker build --target production -t manga-backend ./backend
 
-**Volume mapeado:**
-```yaml
-- ./backend/src:/app/src:ro
+# frontend: build estático servido por nginx (com SPA fallback)
+docker build --target production \
+  --build-arg VITE_API_URL=https://api.exemplo.com/api \
+  -t manga-frontend ./frontend
 ```
 
-### Frontend
+Checklist:
 
-Mudanças em `frontend/src/**/*` acionarão o HMR (Hot Module Replacement) do Vite.
-
-**Volume mapeado:**
-```yaml
-- ./frontend/src:/app/src:ro
-```
+1. `NODE_ENV=production` e `DB_PASSWORD` forte
+2. `VITE_API_URL` correta no `--build-arg` do frontend
+3. HTTPS na frente (nginx/Caddy)
+4. Backup automático do PostgreSQL
 
 ---
 
-## 🚨 Troubleshooting
+## Troubleshooting
 
-### Erro: "Cannot connect to Docker daemon"
-
-**Solução:** Inicie o Docker Desktop
+### Porta em uso
 
 ```bash
-# Windows
-# Abra Docker Desktop pelo menu Iniciar
-
-# Ou via PowerShell
-Start-Process "C:\Program Files\Docker\Docker\Docker Desktop.exe"
+netstat -ano | findstr "3011 3013 5432"     # Windows
+lsof -i :3011 -i :3013 -i :5432             # Linux/Mac
 ```
 
-### Erro: "Port already in use"
+### Backend não conecta no banco
 
-**Problema:** Porta 3000, 5173 ou 5432 já está em uso.
-
-**Solução:** Altere as portas no `.env`:
-
-```env
-BACKEND_PORT=3001
-FRONTEND_PORT=5174
-DB_PORT=5433
-```
-
-### Backend não conecta ao banco
-
-**Verificar:**
-
-1. PostgreSQL está rodando?
-   ```bash
-   docker-compose ps postgres
-   ```
-
-2. Health check passou?
-   ```bash
-   docker-compose logs postgres | grep "ready"
-   ```
-
-3. Variáveis corretas?
-   ```bash
-   docker-compose exec backend env | grep DB_
-   ```
-
-### Frontend mostra erro de CORS
-
-**Problema:** Backend não está aceitando requests do frontend.
-
-**Solução:** Verifique se `VITE_API_URL` está correto no `.env`:
-
-```env
-VITE_API_URL=http://localhost:3000
-```
-
-### Banco de dados vazio após reiniciar
-
-**Problema:** Volume do PostgreSQL foi removido.
-
-**Verificar:**
-```bash
-# Volume existe?
-docker volume ls | grep manga
-
-# Dados existem?
-ls -la storage/postgres/db/
-```
-
-**Solução:**
-- Não use `docker-compose down -v` (remove volumes)
-- Use apenas `docker-compose down` ou `docker-compose stop`
-
-### Erro: "No space left on device"
-
-**Problema:** Docker consumiu todo o espaço em disco.
-
-**Solução:**
-```bash
-# Limpar containers parados
-docker container prune -f
-
-# Limpar imagens não usadas
-docker image prune -a -f
-
-# Limpar volumes não usados (CUIDADO!)
-docker volume prune -f
-
-# Limpar tudo (MUITO CUIDADO!)
-docker system prune -a --volumes -f
-```
-
----
-
-## 📊 Monitoramento
-
-### Ver Status dos Serviços
+O `depends_on` já espera o healthcheck. Se ainda falhar:
 
 ```bash
-docker-compose ps
+docker compose ps                                   # postgres deve estar healthy
+docker compose exec postgres pg_isready -U manga_user
+docker compose logs postgres
 ```
 
-**Saída esperada:**
-```
-NAME                STATUS              PORTS
-manga-postgres      Up (healthy)        0.0.0.0:5432->5432/tcp
-manga-backend       Up                  0.0.0.0:3000->3000/tcp
-manga-frontend      Up                  0.0.0.0:5173->5173/tcp
-manga-pgadmin       Up                  0.0.0.0:5050->80/tcp
-```
-
-### Ver Uso de Recursos
+### Hot reload parou
 
 ```bash
-docker stats
+docker compose down
+docker compose up -d --build
+docker compose exec backend ls -la /app/src         # o mount deve estar lá
 ```
 
-### Health Checks
+### Frontend recarrega sozinho durante a navegação
+
+Alguém remontou `./storage` no serviço do frontend. Remova o mount e recrie:
 
 ```bash
-# PostgreSQL
-curl http://localhost:5432
-
-# Backend API
-curl http://localhost:3000/health
-
-# Frontend
-curl http://localhost:5173
+docker compose up -d --force-recreate frontend
 ```
 
----
-
-## 🏭 Deploy para Produção
-
-### 1. Alterar NODE_ENV
-
-```env
-NODE_ENV=production
-```
-
-### 2. Configurar Senhas Fortes
-
-```env
-DB_PASSWORD=senha_muito_forte_aqui
-PGADMIN_PASSWORD=senha_muito_forte_aqui
-```
-
-### 3. Alterar VITE_API_URL
-
-```env
-VITE_API_URL=https://seu-dominio.com/api
-```
-
-### 4. Rebuild para Produção
+### Capas não aparecem
 
 ```bash
-docker-compose build --no-cache
-docker-compose up -d
+ls storage/images/
+curl -I http://localhost:3011/images/<arquivo>.jpg
+docker compose logs backend | grep -i image
 ```
 
-**Diferenças em Produção:**
-
-| Aspecto | Development | Production |
-|---------|-------------|------------|
-| **Backend** | `npm run dev` (tsx watch) | `node dist/server.js` |
-| **Frontend** | Vite dev server | Nginx servindo build estático |
-| **Logs** | Verbose | Menos verbose |
-| **Source Maps** | Habilitados | Desabilitados |
-| **Hot Reload** | Sim | Não |
-
----
-
-## 📝 Backup e Restore
-
-### Backup Automático
-
-Criar script `backup.sh`:
+### Começar do zero
 
 ```bash
-#!/bin/bash
-DATE=$(date +%Y%m%d_%H%M%S)
-docker-compose exec -T postgres pg_dump -U manga_user manga_db > "backups/backup_$DATE.sql"
-echo "Backup criado: backups/backup_$DATE.sql"
+docker compose down -v
+docker compose up -d --build
 ```
 
-### Restore
-
-```bash
-docker-compose exec -T postgres psql -U manga_user -d manga_db < backups/backup_20250106.sql
-```
-
----
-
-## 🔐 Segurança
-
-### Checklist de Segurança
-
-- [ ] Alterar senhas padrão do `.env`
-- [ ] Não commitar `.env` no Git
-- [ ] Usar HTTPS em produção
-- [ ] Configurar firewall (permitir apenas portas necessárias)
-- [ ] Fazer backups regulares
-- [ ] Atualizar imagens Docker regularmente
-- [ ] Validar inputs no backend
-- [ ] Sanitizar dados antes de armazenar
-
----
-
-## 📚 Referências
-
-- **Docker Compose:** https://docs.docker.com/compose/
-- **PostgreSQL no Docker:** https://hub.docker.com/_/postgres
-- **Vite:** https://vitejs.dev/
-- **Node.js:** https://nodejs.org/
-
----
-
-**Última atualização:** 2025-12-06
+> `down -v` apaga os named volumes (`node_modules`). Os dados do PostgreSQL
+> ficam em `./storage/postgres/db`, que é bind mount e **não** é removido —
+> para zerar o banco também, apague essa pasta manualmente.
