@@ -2,61 +2,50 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
-import { Logger } from '@nestjs/common';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {
-    logger: ['error', 'warn', 'log', 'debug', 'verbose'],
-  });
+  const app = await NestFactory.create(AppModule);
 
-  const logger = new Logger('Bootstrap');
+  // Global prefix
+  app.setGlobalPrefix('api');
 
-  // Enable CORS
+  // CORS - permite todas as origens em desenvolvimento
   app.enableCors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    origin: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     credentials: true,
   });
 
-  // Global validation pipe
+  // Validation
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
       transform: true,
-      forbidNonWhitelisted: true,
       transformOptions: {
         enableImplicitConversion: true,
       },
     }),
   );
 
-  // Swagger Documentation
+  // Swagger
   const config = new DocumentBuilder()
-    .setTitle('Manga Agent API')
-    .setDescription('Sistema completo de gerenciamento de mangás com IA')
-    .setVersion('2.0.0')
-    .addTag('mangas', 'Operações relacionadas a mangás')
-    .addTag('tags', 'Gerenciamento de tags')
-    .addTag('ai', 'Funcionalidades de IA e chat')
-    .addTag('stats', 'Estatísticas e dashboard')
-    .addTag('collections', 'Coleções de mangás')
-    .addBearerAuth()
+    .setTitle('Manga API v2')
+    .setDescription('API para gerenciamento de mangás')
+    .setVersion('2.0')
+    .addTag('mangas')
+    .addTag('tags')
+    .addTag('stats')
+    .addTag('admin')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document, {
-    swaggerOptions: {
-      persistAuthorization: true,
-      tagsSorter: 'alpha',
-      operationsSorter: 'alpha',
-    },
-  });
+  SwaggerModule.setup('docs', app, document);
 
-  const port = process.env.PORT || 3000;
+  const port = process.env.PORT || 3011;
   await app.listen(port);
 
-  logger.log(`🚀 Application is running on: http://localhost:${port}`);
-  logger.log(`📚 Swagger docs available at: http://localhost:${port}/api/docs`);
-  logger.log(`🎯 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🚀 Backend V2 running on http://localhost:${port}`);
+  console.log(`📚 Swagger docs on http://localhost:${port}/docs`);
 }
 
 bootstrap();

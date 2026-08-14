@@ -1,4 +1,4 @@
-# Backend Dockerfile - Multi-stage para produção otimizada
+# Backend V2 Dockerfile - NestJS + Prisma
 
 # Stage 1: Base
 FROM node:22-alpine AS base
@@ -9,7 +9,8 @@ RUN apk add --no-cache \
     python3 \
     make \
     g++ \
-    postgresql-client
+    postgresql-client \
+    openssl
 
 # Stage 2: Dependencies
 FROM base AS dependencies
@@ -19,29 +20,33 @@ RUN npm ci --only=production && \
 
 # Stage 3: Development
 FROM base AS development
-ENV PORT=3010
+ENV PORT=3011
 COPY package*.json ./
 RUN npm install
 COPY . .
-EXPOSE 3010
-CMD ["npm", "run", "dev"]
+RUN npx prisma generate
+EXPOSE 3011
+CMD ["npm", "run", "start:dev"]
 
 # Stage 4: Builder (para produção)
 FROM base AS builder
 COPY package*.json ./
 RUN npm ci
 COPY . .
+RUN npx prisma generate
 RUN npm run build
 
 # Stage 5: Production
 FROM base AS production
 ENV NODE_ENV=production
-ENV PORT=3010
+ENV PORT=3011
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY package*.json ./
-EXPOSE 3010
-CMD ["node", "dist/api/server.js"]
+COPY prisma ./prisma
+EXPOSE 3011
+CMD ["node", "dist/main.js"]
 
 # Default: development
 FROM development
