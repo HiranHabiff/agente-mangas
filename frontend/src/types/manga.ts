@@ -1,92 +1,105 @@
-export type MangaStatus = 'reading' | 'completed' | 'paused' | 'dropped' | 'plan_to_read';
-
-export interface Manga {
-  id: string;
-  primary_title: string;
-  url: string | null;
-  image_filename: string | null;
-  image_url: string | null;
-  last_chapter_read: number;
-  total_chapters: number | null;
-  rating: number | null;
-  status: MangaStatus;
-  synopsis: string | null;
-  user_notes: string | null;
-  legacy_id: number | null;
-  created_at: string;
-  updated_at: string;
-  last_read_at: string | null;
-  deleted_at: string | null;
-}
-
-export interface MangaComplete extends Manga {
-  alternative_names: string[];
-  tags: string[];
-}
-
-export interface CreateMangaInput {
-  primary_title: string;
-  alternative_names?: string[];
-  url?: string;
-  image_url?: string;
-  status?: MangaStatus;
-  rating?: number;
-  synopsis?: string;
-  user_notes?: string;
-  tags?: string[];
-}
-
-export interface UpdateMangaInput {
-  primary_title?: string;
-  add_names?: string[];
-  remove_names?: string[];
-  url?: string;
-  status?: MangaStatus;
-  rating?: number;
-  synopsis?: string;
-  user_notes?: string;
-  add_tags?: string[];
-  remove_tags?: string[];
-}
-
-export interface Stats {
-  total: string;
-  reading: string;
-  completed: string;
-  paused: string;
-  dropped: string;
-  plan_to_read: string;
-  with_covers: string;
-  avg_rating: string | null;
-  avg_chapters_read: string | null;
-}
-
 export interface Tag {
   id: string;
   name: string;
-  category: string | null;
-  color: string | null;
-  usage_count?: number;
+  nameEnglish?: string | null;
+  color?: string | null;
+  description?: string | null;
+  count?: number;
 }
 
-export interface Reminder {
+export interface Manga {
   id: string;
-  manga_id: string;
-  manga_title?: string;
-  reminder_type: 'update' | 'scheduled' | 'custom';
-  message: string;
-  scheduled_for: string;
-  is_active: boolean;
-  is_recurring: boolean;
-  recurrence_days: number | null;
+  primaryTitle: string;
+  url?: string | null;
+  imageUrl?: string | null;
+  imageFilename?: string | null;
+  synopsis?: string | null;
+  rating?: number | null;
+  totalChapters?: number | null;
+  lastChapterRead?: number | null;
+  status?: string | null;
+  userNotes?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  lastReadAt?: string | null;
+  genres: Tag[];
+  themes: Tag[];
+  tags: Tag[];
+  statusRef?: Tag | null;
+  type?: Tag | null;
+  contentRating?: Tag | null;
+  demographic?: Tag | null;
 }
 
-export interface PaginatedResponse<T> {
-  data: T[];
+export interface MangaDetail extends Manga {
+  alternativeNames: {
+    id: string;
+    name: string;
+    language?: string | null;
+    isOfficial?: boolean;
+  }[];
+  links: {
+    id: string;
+    url: string;
+    label?: string | null;
+    isPrimary?: boolean;
+    isActive?: boolean;
+    site?: {
+      id: string;
+      name: string;
+      url: string;
+      image: string;
+    } | null;
+  }[];
+}
+
+export interface MangaListResponse {
+  data: Manga[];
   pagination: {
+    total: number;
     limit: number;
     offset: number;
-    total: number;
-    hasMore?: boolean;
+    hasMore: boolean;
   };
+}
+
+export interface FilterOptions {
+  genres: Tag[];
+  themes: Tag[];
+  tags: Tag[];
+  status: Tag[];
+  types: Tag[];
+  ratings: Tag[];
+  demographics: Tag[];
+}
+
+export interface MangaFilters {
+  query?: string;
+  status?: string[];
+  genres?: string[];
+  themes?: string[];
+  tags?: string[];
+  types?: string[];
+  ratings?: string[];
+  demographics?: string[];
+  minRating?: number;
+  withCovers?: boolean;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+  limit?: number;
+  offset?: number;
+}
+
+export interface Stats {
+  total: number;
+  byStatus: {
+    reading: number;
+    completed: number;
+    paused: number;
+    dropped: number;
+    planToRead: number;
+  };
+  averageRating: number | null;
+  totalChaptersRead: number;
+  mangasWithRating: number;
 }
